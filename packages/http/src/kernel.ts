@@ -1,0 +1,131 @@
+import Fastify from 'fastify';
+import type { FastifyInstance, FastifyRequest as RawFastifyRequest, FastifyReply } from 'fastify';
+import type { ApplicationContract, Constructor } from '@faberjs/core';
+import { Request } from './request';
+import type { Response } from './response';
+import { Pipeline } from './pipeline';
+import { HttpException } from './exceptions';
+import type { ControllerAction, HttpKernelContract, Middleware, RouterContract } from './types';
+
+export class HttpKernel implements HttpKernelContract {
+  private readonly fastify: FastifyInstance;
+  private readonly globalMiddleware: Middleware[] = [];
+  private address = '';
+
+  constructor(private readonly app: ApplicationContract) {
+    this.fastify = Fastify({ logger: false });
+  }
+
+  use(middleware: Middleware): this {
+    this.globalMiddleware.push(middleware);
+    return this;
+  }
+
+  async listen(port: number, host = '127.0.0.1'): Promise<void> {
+    if (this.app.bound('router')) {
+      const router = this.app.make<RouterContract>('router');
+      this.registerRoutes(router);
+    }
+    await this.fastify.listen({ port, host });
+    const addrs = this.fastify.addresses();
+    if (addrs.length > 0) {
+      const first = addrs[0];
+      this.address = `http://${first.address}:${first.port}`;
+    }
+  }
+
+  async close(): Promise<void> {
+    await this.fastify.close();
+  }
+
+  getUrl(): string {
+    return this.address;
+  }
+
+  private registerRoutes(router: RouterContract): void {
+    for (const route of router.getRoutes()) {
+      const { method, path, handler } = route;
+      this.fastify.route({
+        method,
+        url: path,
+        handler: async (rawReq: RawFastifyRequest, reply: FastifyReply) => {
+          const request = this.adaptRequest(rawReq);
+          try {
+            const pipeline = new Pipeline([...this.globalMiddleware], (req) =>
+              this.invokeHandler(handler, req),
+            );
+            const res = await pipeline.send(request);
+            await this.sendResponse(reply, res);
+          } catch (error: unknown) {
+            await this.handleError(reply, error);
+          }
+        },
+      });
+    }
+  }
+
+  private adaptRequest(rawReq: RawFastifyRequest): Request {
+    const params =
+      typeof rawReq.params === 'object' && rawReq.params !== null
+        ? (rawReq.params as Record<string, string>)
+        : {};
+    const query =
+      typeof rawReq.query === 'object' && rawReq.query !== null
+        ? (rawReq.query as Record<string, string>)
+        : {};
+
+    return new Request({
+      method: rawReq.method,
+      path: rawReq.url.split('?')[0],
+      url: rawReq.url,
+      headers: rawReq.headers as Record<string, string | string[] | undefined>,
+      body: rawReq.body,
+      query,
+      params,
+      ip: rawReq.ip,
+    });
+  }
+
+  private async invokeHandler(handler: ControllerAction, request: Request): Promise<Response> {
+    if (typeof handler === 'function') {
+      return handler(request);
+    }
+
+    const [ControllerClass, methodName] = handler as readonly [Constructor, string];
+    const controller = this.app.make(ControllerClass);
+    const record = controller as Record<string, (req: Request) => Promise<Response>>;
+
+    if (typeof record[methodName] !== 'function') {
+      throw new Error(`Method [${methodName}] not found on [${ControllerClass.name}].`);
+    }
+
+    return record[methodName].call(controller, request);
+  }
+
+  private async sendResponse(reply: FastifyReply, res: Response): Promise<void> {
+    const headers = res.getHeaders();
+    for (const [key, value] of Object.entries(headers)) {
+      void reply.header(key, value);
+    }
+
+    const body = res.getBody();
+    if (body === null) {
+      await reply.status(res.getStatus()).send();
+    } else {
+      await reply.status(res.getStatus()).send(body);
+    }
+  }
+
+  private async handleError(reply: FastifyReply, error: unknown): Promise<void> {
+    if (error instanceof HttpException) {
+      const body: Record<string, unknown> = { message: error.message };
+      if (error.data !== undefined) {
+        body['errors'] = error.data;
+      }
+      await reply.status(error.statusCode).send(body);
+      return;
+    }
+
+    await reply.status(500).send({ message: 'Internal Server Error' });
+  }
+}

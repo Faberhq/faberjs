@@ -85,7 +85,7 @@ pnpm changeset        # create a new changeset for versioning
 |---|---|---|---|
 | 1 | Monorepo scaffolding | **Done** | — |
 | 2 | `/core`, `/config` | **Done** | Phase 1 |
-| 3 | `/http`, `/router` | Not started | Phase 2 |
+| 3 | `/http`, `/router` | **Done** | Phase 2 |
 | 4 | `/orm` | Not started | Phase 2 |
 | 5 | `/validation` | Not started | Phase 3 |
 | 6 | `/console` | Not started | Phase 2, 4 |
