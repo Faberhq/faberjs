@@ -131,7 +131,27 @@ importers:
 
   packages/testing: {}
 
-  packages/validation: {}
+  packages/validation:
+    dependencies:
+      '@faberjs/core':
+        specifier: workspace:*
+        version: link:../core
+      '@faberjs/http':
+        specifier: workspace:*
+        version: link:../http
+    devDependencies:
+      '@faberjs/orm':
+        specifier: workspace:*
+        version: link:../orm
+      '@types/better-sqlite3':
+        specifier: ^7.6.8
+        version: 7.6.13
+      better-sqlite3:
+        specifier: ^9.4.0
+        version: 9.6.0
+      knex:
+        specifier: ^3.1.0
+        version: 3.2.9(better-sqlite3@9.6.0)
 
 packages:
 
