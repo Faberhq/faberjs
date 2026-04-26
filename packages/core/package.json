@@ -1,7 +1,7 @@
 {
-  "name": "@forgejs/core",
+  "name": "@faberjs/core",
   "version": "0.0.1",
-  "description": "ForgeJS app kernel, service container, service providers, and facades",
+  "description": "FaberJS app kernel, service container, service providers, and facades",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -21,7 +21,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "keywords": [
-    "forgejs",
+    "faberjs",
     "framework",
     "ioc",
     "container",

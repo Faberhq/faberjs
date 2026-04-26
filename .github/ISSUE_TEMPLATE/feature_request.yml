@@ -1,0 +1,67 @@
+name: Feature Request
+description: Propose a new feature or improvement for FaberJS
+title: '[feat] '
+labels: ['enhancement', 'needs-triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening a feature request, please check that a similar proposal doesn't already exist.
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Target Package
+      description: Which /* package does this feature relate to?
+      options:
+        - '/core'
+        - '/router'
+        - '/orm'
+        - '/http'
+        - '/console'
+        - '/queue'
+        - '/events'
+        - '/auth'
+        - '/config'
+        - '/validation'
+        - '/cache'
+        - '/testing'
+        - 'create-faberjs'
+        - 'New Package'
+        - 'Framework-wide'
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Motivation
+      description: What problem does this feature solve? What use case does it address?
+      placeholder: 'As a developer building... I want... because...'
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your proposed API or implementation. Include code examples if possible.
+      placeholder: |
+        ```typescript
+        // Example of what the API would look like
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: laravel
+    attributes:
+      label: Laravel Equivalent
+      description: If this mirrors a Laravel feature, what is it? (Leave blank if not applicable.)
+      placeholder: "e.g. Eloquent's withCount(), artisan make:cast, etc."
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative solutions or workarounds you've considered.

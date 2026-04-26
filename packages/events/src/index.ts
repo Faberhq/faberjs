@@ -1,2 +1,2 @@
-// @forgejs/events — Application-level event and listener system
+// /events — Application-level event and listener system
 export {};

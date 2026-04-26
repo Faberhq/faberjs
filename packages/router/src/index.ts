@@ -1,2 +1,2 @@
-// @forgejs/router — HTTP routing engine
+// /router — HTTP routing engine
 export {};

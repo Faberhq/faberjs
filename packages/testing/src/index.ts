@@ -1,2 +1,2 @@
-// @forgejs/testing — Test helpers, HTTP test client, and database assertions
+// /testing — Test helpers, HTTP test client, and database assertions
 export {};

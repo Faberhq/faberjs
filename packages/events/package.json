@@ -1,7 +1,7 @@
 {
-  "name": "@forgejs/events",
+  "name": "@faberjs/events",
   "version": "0.0.1",
-  "description": "ForgeJS application-level event and listener system with auto-discovery",
+  "description": "FaberJS application-level event and listener system with auto-discovery",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -21,7 +21,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "keywords": [
-    "forgejs",
+    "faberjs",
     "framework",
     "events",
     "listeners",

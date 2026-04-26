@@ -1,4 +1,4 @@
-# PRD: ForgeJS — A Laravel-Inspired Node.js Framework
+# PRD: FaberJS — A Laravel-Inspired Node.js Framework
 
 **Version:** 1.0.0  
 **Status:** Ready for Engineering  
@@ -10,7 +10,7 @@
 ## 1. Overview
 
 ### 1.1 Vision
-ForgeJS is a full-featured, opinionated Node.js/TypeScript backend framework that mirrors Laravel's developer experience — conventions, architecture, CLI, and ecosystem — without compromising the JavaScript runtime's native strengths.
+FaberJS is a full-featured, opinionated Node.js/TypeScript backend framework that mirrors Laravel's developer experience — conventions, architecture, CLI, and ecosystem — without compromising the JavaScript runtime's native strengths.
 
 ### 1.2 Problem Statement
 Laravel developers switching to JavaScript face a fragmented ecosystem: Express for routing, Prisma or Sequelize for ORM, BullMQ for queues, custom DI containers — all with no unifying conventions, no CLI, and no cohesive request lifecycle. The result is decision fatigue, boilerplate overload, and inconsistent project structures.
@@ -21,7 +21,7 @@ Laravel developers switching to JavaScript face a fragmented ecosystem: Express 
 - Teams building REST APIs or full-stack JS apps that need fast scaffolding
 
 ### 1.4 Success Metrics
-- A fresh project compiles, runs, and serves an API route in under 2 minutes after `npm create forgejs@latest`
+- A fresh project compiles, runs, and serves an API route in under 2 minutes after `npm create faberjs@latest`
 - Core DX parity with Laravel for: routing, ORM, middleware, DI container, CLI, migrations, queues, events
 - All core packages are independently publishable to npm
 
@@ -31,10 +31,10 @@ Laravel developers switching to JavaScript face a fragmented ecosystem: Express 
 
 | Item | Value |
 |---|---|
-| Framework Name | **ForgeJS** |
-| CLI Binary | `forge` |
-| npm Scope | `@forgejs/` |
-| Config File | `forge.config.ts` |
+| Framework Name | **FaberJS** |
+| CLI Binary | `faberjs` |
+| npm Scope | `/` |
+| Config File | `faberjs.config.ts` |
 | Entry Point | `bootstrap/app.ts` |
 
 ---
@@ -44,7 +44,7 @@ Laravel developers switching to JavaScript face a fragmented ecosystem: Express 
 ### 3.1 Monorepo Structure
 
 ```
-forgejs/
+faberjs/
 ├── packages/
 │   ├── core/              # App kernel, service container, lifecycle
 │   ├── router/            # HTTP routing engine
@@ -58,7 +58,7 @@ forgejs/
 │   ├── validation/        # Request validation
 │   ├── cache/             # Cache abstraction (Redis, Memory)
 │   └── testing/           # Test helpers & HTTP test client
-├── create-forgejs/        # Project scaffolding CLI (npm create)
+├── create-faberjs/        # Project scaffolding CLI (npm create)
 ├── stubs/                 # Code generation templates
 ├── docs/
 └── examples/
@@ -86,7 +86,7 @@ The following lifecycle must be implemented in order:
 
 ---
 
-### Package 1: `@forgejs/core`
+### Package 1: `/core`
 
 **Responsibility:** Application container, service providers, facades, lifecycle management.
 
@@ -140,7 +140,7 @@ Proxy-based static wrappers around IoC-resolved instances. Allow ergonomic acces
 
 ```typescript
 // Usage
-import { DB, Cache, Event } from '@forgejs/facades';
+import { DB, Cache, Event } from '/facades';
 const users = await DB.table('users').where('active', true).get();
 
 // Implementation: Facade base resolves the underlying binding from the container
@@ -148,7 +148,7 @@ const users = await DB.table('users').where('active', true).get();
 
 ---
 
-### Package 2: `@forgejs/router`
+### Package 2: `/router`
 
 **Responsibility:** HTTP routing, controller dispatch, route model binding, named routes, resource routes.
 
@@ -156,7 +156,7 @@ const users = await DB.table('users').where('active', true).get();
 
 ```typescript
 // routes/api.ts
-import { Router } from '@forgejs/router';
+import { Router } from '/router';
 const router = Router.group({ prefix: '/api/v1', middleware: ['auth'] }, () => {
   router.get('/users', [UserController, 'index']);
   router.post('/users', [UserController, 'store']);
@@ -174,7 +174,7 @@ const router = Router.group({ prefix: '/api/v1', middleware: ['auth'] }, () => {
 ```typescript
 // Automatic: param name matches model name
 router.get('/users/:user', [UserController, 'show']);
-// ForgeJS resolves User.find(params.user) and injects the model instance
+// FaberJS resolves User.find(params.user) and injects the model instance
 ```
 
 #### 4.2.3 Named Routes & URL Generation
@@ -199,14 +199,14 @@ abstract class Controller {
 
 ---
 
-### Package 3: `@forgejs/orm`
+### Package 3: `/orm`
 
 **Responsibility:** ActiveRecord ORM inspired by Eloquent. Models represent database tables. Chainable query builder. Relationships. Migrations.
 
 #### 4.3.1 Model Definition
 
 ```typescript
-import { Model } from '@forgejs/orm';
+import { Model } from '/orm';
 
 class User extends Model {
   static table = 'users';
@@ -274,7 +274,7 @@ await post.restore();
 
 ```typescript
 // database/migrations/2026_04_26_create_users_table.ts
-import { Migration, Schema } from '@forgejs/orm';
+import { Migration, Schema } from '/orm';
 
 export default class CreateUsersTable extends Migration {
   async up() {
@@ -298,7 +298,7 @@ export default class CreateUsersTable extends Migration {
 
 ```typescript
 // database/factories/UserFactory.ts
-import { Factory } from '@forgejs/orm';
+import { Factory } from '/orm';
 import { faker } from '@faker-js/faker';
 
 class UserFactory extends Factory {
@@ -325,7 +325,7 @@ await UserFactory.state({ role: 'admin' }).count(5).create();
 
 ---
 
-### Package 4: `@forgejs/http`
+### Package 4: `/http`
 
 **Responsibility:** Request/Response abstraction, middleware pipeline, global exception handler.
 
@@ -411,7 +411,7 @@ Global exception handler converts exceptions to HTTP responses:
 
 ---
 
-### Package 5: `@forgejs/console` (The Forge CLI)
+### Package 5: `/console` (The Forge CLI)
 
 **Responsibility:** Artisan equivalent. Code generation, migration runner, queue worker, REPL, app commands.
 
@@ -419,52 +419,52 @@ Global exception handler converts exceptions to HTTP responses:
 
 ```bash
 # Project
-forge serve                          # Start dev server (with hot reload)
-forge serve --port=3333
+faberjs serve                          # Start dev server (with hot reload)
+faberjs serve --port=3333
 
 # Code Generation (make:*)
-forge make:controller UserController
-forge make:controller UserController --resource  # CRUD stubs
-forge make:model User
-forge make:model User --migration    # model + migration together
-forge make:migration create_posts_table
-forge make:middleware AuthMiddleware
-forge make:job SendWelcomeEmail
-forge make:event UserRegistered
-forge make:listener SendWelcomeEmail --event=UserRegistered
-forge make:seeder UserSeeder
-forge make:factory UserFactory
-forge make:command SendDailyReport
-forge make:provider PaymentServiceProvider
+faberjs make:controller UserController
+faberjs make:controller UserController --resource  # CRUD stubs
+faberjs make:model User
+faberjs make:model User --migration    # model + migration together
+faberjs make:migration create_posts_table
+faberjs make:middleware AuthMiddleware
+faberjs make:job SendWelcomeEmail
+faberjs make:event UserRegistered
+faberjs make:listener SendWelcomeEmail --event=UserRegistered
+faberjs make:seeder UserSeeder
+faberjs make:factory UserFactory
+faberjs make:command SendDailyReport
+faberjs make:provider PaymentServiceProvider
 
 # Database
-forge db:migrate
-forge db:migrate --fresh             # drop all + re-migrate
-forge db:migrate --fresh --seed      # + run seeders
-forge db:rollback
-forge db:rollback --step=3
-forge db:seed
-forge db:seed --class=UserSeeder
-forge db:status                      # show migration status table
+faberjs db:migrate
+faberjs db:migrate --fresh             # drop all + re-migrate
+faberjs db:migrate --fresh --seed      # + run seeders
+faberjs db:rollback
+faberjs db:rollback --step=3
+faberjs db:seed
+faberjs db:seed --class=UserSeeder
+faberjs db:status                      # show migration status table
 
 # Queue
-forge queue:work
-forge queue:work --queue=emails,notifications
-forge queue:failed                   # list failed jobs
-forge queue:retry all
+faberjs queue:work
+faberjs queue:work --queue=emails,notifications
+faberjs queue:failed                   # list failed jobs
+faberjs queue:retry all
 
 # App
-forge tinker                         # REPL with app context injected
-forge route:list                     # print all registered routes
-forge config:show                    # dump resolved config
-forge env                            # show loaded env values
+faberjs tinker                         # REPL with app context injected
+faberjs route:list                     # print all registered routes
+faberjs config:show                    # dump resolved config
+faberjs env                            # show loaded env values
 ```
 
 #### 4.5.2 Custom Commands
 
 ```typescript
 // app/commands/SendDailyReport.ts
-import { Command } from '@forgejs/console';
+import { Command } from '/console';
 
 export default class SendDailyReport extends Command {
   signature = 'report:daily {--type=summary : Report type}';
@@ -481,14 +481,14 @@ export default class SendDailyReport extends Command {
 
 ---
 
-### Package 6: `@forgejs/queue`
+### Package 6: `/queue`
 
 **Responsibility:** Background job dispatching, queue workers, retry logic, failed job tracking. Backed by BullMQ + Redis.
 
 #### 4.6.1 Defining Jobs
 
 ```typescript
-import { Job } from '@forgejs/queue';
+import { Job } from '/queue';
 
 class SendWelcomeEmail extends Job {
   queue = 'emails';
@@ -529,7 +529,7 @@ await Job.batch(users.map(u => new SendWelcomeEmail(u))).dispatch();
 
 ---
 
-### Package 7: `@forgejs/events`
+### Package 7: `/events`
 
 **Responsibility:** Application-level event/listener bus with auto-discovery.
 
@@ -570,7 +570,7 @@ await Event.dispatch(new UserRegistered(user));
 
 ---
 
-### Package 8: `@forgejs/validation`
+### Package 8: `/validation`
 
 **Responsibility:** Request validation with fluent rules, auto-error responses.
 
@@ -608,7 +608,7 @@ Validation failure automatically returns a `422` JSON response with the error ba
 
 ---
 
-### Package 9: `@forgejs/config`
+### Package 9: `/config`
 
 **Responsibility:** Typed config loading from `.env` and `config/*.ts` files.
 
@@ -638,13 +638,13 @@ export default {
 };
 
 // Usage anywhere
-import { config } from '@forgejs/config';
+import { config } from '/config';
 config('database.connections.postgres.host');
 ```
 
 ---
 
-### Package 10: `@forgejs/auth`
+### Package 10: `/auth`
 
 **Responsibility:** JWT-based authentication guards and authorization policies.
 
@@ -669,7 +669,7 @@ this.authorize('update', post); // throws ForbiddenException if not allowed
 
 ## 5. Project Structure (Generated App)
 
-When a user runs `npm create forgejs@latest my-app`, the following structure is scaffolded:
+When a user runs `npm create faberjs@latest my-app`, the following structure is scaffolded:
 
 ```
 my-app/
@@ -707,19 +707,19 @@ my-app/
 │   └── Unit/
 ├── .env
 ├── .env.example
-├── forge.config.ts
+├── faberjs.config.ts
 ├── package.json
 └── tsconfig.json
 ```
 
 ---
 
-## 6. Testing Utilities (`@forgejs/testing`)
+## 6. Testing Utilities (`/testing`)
 
-Laravel's testing DX is one of its strongest selling points. ForgeJS must match it.
+Laravel's testing DX is one of its strongest selling points. FaberJS must match it.
 
 ```typescript
-import { TestCase, createTestApp } from '@forgejs/testing';
+import { TestCase, createTestApp } from '/testing';
 
 class UserTest extends TestCase {
   async setup() {
@@ -763,7 +763,7 @@ This section maps the codebase into discrete, parallelizable tasks for sub-agent
 - Create all `packages/*` directories with `package.json`, `tsconfig.json`, and an `index.ts` barrel file
 - Set up root `tsconfig.base.json` with strict TypeScript, decorators, and `reflect-metadata`
 - Configure `vitest` at the root for unified test running
-- Create `create-forgejs` scaffolding CLI package
+- Create `create-faberjs` scaffolding CLI package
 - Set up `changesets` for versioning
 
 **Acceptance Criteria:**
@@ -778,9 +778,9 @@ This section maps the codebase into discrete, parallelizable tasks for sub-agent
 **Dependencies:** Phase 1
 
 **Tasks:**
-- Implement `@forgejs/core`: `Application`, `Container`, `ServiceProvider` base class
-- Implement `@forgejs/config`: `.env` loading, `config()` helper, typed config files
-- Implement `@forgejs/facades`: `Facade` base class + Proxy resolution
+- Implement `/core`: `Application`, `Container`, `ServiceProvider` base class
+- Implement `/config`: `.env` loading, `config()` helper, typed config files
+- Implement `/facades`: `Facade` base class + Proxy resolution
 
 **Acceptance Criteria:**
 - Container can `bind`, `singleton`, `make` with auto-injection via decorators
@@ -794,13 +794,13 @@ This section maps the codebase into discrete, parallelizable tasks for sub-agent
 **Dependencies:** Phase 2
 
 **Tasks:**
-- Implement `@forgejs/http`: `Request`, `Response`, middleware pipeline (onion model)
-- Implement `@forgejs/router`: route registration, groups, resource routes, named routes, route model binding
+- Implement `/http`: `Request`, `Response`, middleware pipeline (onion model)
+- Implement `/router`: route registration, groups, resource routes, named routes, route model binding
 - Wire up Fastify as the HTTP adapter (internal — users never touch Fastify directly)
 - Implement global exception handler → HTTP response mapping
 
 **Acceptance Criteria:**
-- `forge serve` boots and handles `GET /health` → `200 OK`
+- `faberjs serve` boots and handles `GET /health` → `200 OK`
 - Middleware executes in correct order
 - Named route URL generation works
 - Feature tests: CRUD routes + auth middleware
@@ -812,15 +812,15 @@ This section maps the codebase into discrete, parallelizable tasks for sub-agent
 **Dependencies:** Phase 2
 
 **Tasks:**
-- Implement `@forgejs/orm`: `Model` base class, ActiveRecord CRUD, query builder, relationships (`hasOne`, `hasMany`, `belongsTo`, `belongsToMany`), soft deletes, eager loading (`.with()`)
+- Implement `/orm`: `Model` base class, ActiveRecord CRUD, query builder, relationships (`hasOne`, `hasMany`, `belongsTo`, `belongsToMany`), soft deletes, eager loading (`.with()`)
 - Implement schema builder: `Schema.create`, column types, indexes, foreign keys
 - Implement migration runner: up/down, batch tracking in `forge_migrations` table
 - Implement `Factory` and `Seeder` base classes
 - Adapters for PostgreSQL and SQLite
 
 **Acceptance Criteria:**
-- `forge db:migrate` runs and tracks batches
-- `forge db:rollback` reverses last batch
+- `faberjs db:migrate` runs and tracks batches
+- `faberjs db:rollback` reverses last batch
 - Model CRUD, soft deletes, and eager loading all pass unit + integration tests (SQLite in-memory)
 - Factory generates valid fake model data
 
@@ -831,7 +831,7 @@ This section maps the codebase into discrete, parallelizable tasks for sub-agent
 **Dependencies:** Phase 3
 
 **Tasks:**
-- Implement `@forgejs/validation`: rule engine (required, string, min, max, email, unique, in, confirmed, etc.)
+- Implement `/validation`: rule engine (required, string, min, max, email, unique, in, confirmed, etc.)
 - `FormRequest` base class with `rules()` and `authorize()` lifecycle
 - Auto-inject `FormRequest` in controller method signatures
 - Wire `ValidationException` → 422 response with error bag
@@ -849,18 +849,18 @@ This section maps the codebase into discrete, parallelizable tasks for sub-agent
 **Dependencies:** Phase 2, 4
 
 **Tasks:**
-- Build the `forge` CLI binary using `commander` or `cac`
+- Build the `faberjs` CLI binary using `commander` or `cac`
 - Implement all `make:*` generators from stubs
 - Implement `db:migrate`, `db:rollback`, `db:seed`, `db:status`
 - Implement `route:list` (reads registered routes, outputs table)
 - Implement `tinker` (Node.js REPL with app context)
-- Implement `forge serve` with `tsx watch`
+- Implement `faberjs serve` with `tsx watch`
 
 **Acceptance Criteria:**
-- `forge make:model User --migration` generates both files correctly
-- `forge db:migrate` runs migrations in order
-- `forge route:list` prints a formatted table
-- `forge serve` starts server and hot-reloads on file change
+- `faberjs make:model User --migration` generates both files correctly
+- `faberjs db:migrate` runs migrations in order
+- `faberjs route:list` prints a formatted table
+- `faberjs serve` starts server and hot-reloads on file change
 
 ---
 
@@ -869,11 +869,11 @@ This section maps the codebase into discrete, parallelizable tasks for sub-agent
 **Dependencies:** Phase 2, 6
 
 **Tasks:**
-- Implement `@forgejs/queue` using BullMQ + Redis
+- Implement `/queue` using BullMQ + Redis
 - `Job` base class with `handle()`, `failed()`, `queue`, `tries`, `backoff`
 - `Job.dispatch()`, `.delay()`, `.chain()`, `.batch()` static API
-- `forge queue:work` command with graceful shutdown
-- `forge queue:failed` and `forge queue:retry`
+- `faberjs queue:work` command with graceful shutdown
+- `faberjs queue:failed` and `faberjs queue:retry`
 
 **Acceptance Criteria:**
 - Jobs dispatch and are consumed by the worker
@@ -888,7 +888,7 @@ This section maps the codebase into discrete, parallelizable tasks for sub-agent
 **Dependencies:** Phase 2, 7
 
 **Tasks:**
-- Implement `@forgejs/events`: `Event` class, `Listener` base, `EventServiceProvider`
+- Implement `/events`: `Event` class, `Listener` base, `EventServiceProvider`
 - `Event.dispatch()` fires synchronous listeners
 - Queued listeners (with `queue` property) dispatch as Jobs automatically
 - Auto-discovery of `EventServiceProvider.listen` map
@@ -919,19 +919,19 @@ This section maps the codebase into discrete, parallelizable tasks for sub-agent
 
 ---
 
-### Phase 10 — Testing Package & create-forgejs (Agent: DX Agent)
+### Phase 10 — Testing Package & create-faberjs (Agent: DX Agent)
 
 **Dependencies:** All above
 
 **Tasks:**
-- Implement `@forgejs/testing`: `TestCase`, HTTP test client, `assertDatabaseHas`, `refreshDatabase`, `actingAs`
-- Build `create-forgejs` scaffolding CLI: interactive prompts (project name, DB driver, auth yes/no), copies starter template
+- Implement `/testing`: `TestCase`, HTTP test client, `assertDatabaseHas`, `refreshDatabase`, `actingAs`
+- Build `create-faberjs` scaffolding CLI: interactive prompts (project name, DB driver, auth yes/no), copies starter template
 - Write full example app (REST API for a blog: users, posts, comments) as the `examples/api-only` project
 - Write README and getting-started guide
 
 **Acceptance Criteria:**
-- `npm create forgejs@latest my-blog` creates a working project
-- `cd my-blog && forge serve` boots in < 5 seconds
+- `npm create faberjs@latest my-blog` creates a working project
+- `cd my-blog && faberjs serve` boots in < 5 seconds
 - Example app passes its own feature test suite
 - `assertDatabaseHas` and HTTP assertions work against SQLite test database
 
@@ -967,10 +967,10 @@ This section maps the codebase into discrete, parallelizable tasks for sub-agent
 ## 10. Resolved Architecture Decisions
 
 ### Monorepo vs Separate Projects
-All 10 packages live in **one Git repository** using `pnpm` workspaces. Each package is independently publishable to npm under the `@forgejs/` scope, but they share a single CI pipeline, root `tsconfig`, and test runner. This mirrors how Laravel ships `illuminate/*` packages — one repo, many installable packages.
+All 10 packages live in **one Git repository** using `pnpm` workspaces. Each package is independently publishable to npm under the `/` scope, but they share a single CI pipeline, root `tsconfig`, and test runner. This mirrors how Laravel ships `illuminate/*` packages — one repo, many installable packages.
 
 ### 1. ORM Query Builder — Wrap Knex Internally
-Laravel built its query builder from scratch on raw PDO — but that was a decade of investment. ForgeJS v1 will **wrap Knex internally** as the SQL generation and connection layer. Knex handles dialect differences across PostgreSQL, MySQL, and SQLite out of the box. Users never interact with Knex directly; they only use the Eloquent-style Model API. Post-v1, Knex can be swapped for a custom builder without changing any user-facing code.
+Laravel built its query builder from scratch on raw PDO — but that was a decade of investment. FaberJS v1 will **wrap Knex internally** as the SQL generation and connection layer. Knex handles dialect differences across PostgreSQL, MySQL, and SQLite out of the box. Users never interact with Knex directly; they only use the Eloquent-style Model API. Post-v1, Knex can be swapped for a custom builder without changing any user-facing code.
 
 ### 2. Runtime — Node.js 20 LTS Only (v1)
 **Node.js 20+ LTS only for v1.** Bun has compatibility gaps with BullMQ and other production-grade npm packages. Targeting both runtimes from day one splits the testing matrix before anything ships. Bun support will be added in v2 once ecosystem compatibility matures.
@@ -986,7 +986,7 @@ Laravel built its query builder from scratch on raw PDO — but that was a decad
 Devs migrating from Laravel will feel zero friction.
 
 ### 5. Router — Build on Fastify's `find-my-way`
-**Wrap Fastify's `find-my-way` radix-tree router.** It is the fastest HTTP router in the Node.js ecosystem, benchmarking above Express, Koa, and Hono. Building a custom router from scratch adds months of work for zero net performance gain. ForgeJS wraps it with its own API layer (groups, resource routes, named routes, model binding). Users never see Fastify or `find-my-way` directly. The wrapper pattern allows swapping the transport layer in future without breaking user-facing APIs.
+**Wrap Fastify's `find-my-way` radix-tree router.** It is the fastest HTTP router in the Node.js ecosystem, benchmarking above Express, Koa, and Hono. Building a custom router from scratch adds months of work for zero net performance gain. FaberJS wraps it with its own API layer (groups, resource routes, named routes, model binding). Users never see Fastify or `find-my-way` directly. The wrapper pattern allows swapping the transport layer in future without breaking user-facing APIs.
 
 ---
 

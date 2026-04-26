@@ -5,18 +5,44 @@
   },
   "include": [],
   "references": [
-    { "path": "packages/core" },
-    { "path": "packages/router" },
-    { "path": "packages/orm" },
-    { "path": "packages/http" },
-    { "path": "packages/console" },
-    { "path": "packages/queue" },
-    { "path": "packages/events" },
-    { "path": "packages/auth" },
-    { "path": "packages/config" },
-    { "path": "packages/validation" },
-    { "path": "packages/cache" },
-    { "path": "packages/testing" },
-    { "path": "create-forgejs" }
+    {
+      "path": "packages/core"
+    },
+    {
+      "path": "packages/router"
+    },
+    {
+      "path": "packages/orm"
+    },
+    {
+      "path": "packages/http"
+    },
+    {
+      "path": "packages/console"
+    },
+    {
+      "path": "packages/queue"
+    },
+    {
+      "path": "packages/events"
+    },
+    {
+      "path": "packages/auth"
+    },
+    {
+      "path": "packages/config"
+    },
+    {
+      "path": "packages/validation"
+    },
+    {
+      "path": "packages/cache"
+    },
+    {
+      "path": "packages/testing"
+    },
+    {
+      "path": "create-faberjs"
+    }
   ]
 }

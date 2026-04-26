@@ -1,31 +1,31 @@
-# ForgeJS — CLAUDE.md
+# FaberJS — CLAUDE.md
 
 ## What This Is
 
-ForgeJS is a full-featured, opinionated Node.js/TypeScript backend framework that mirrors Laravel's developer experience. It targets Laravel developers moving to Node.js who want a unified framework with conventions, a CLI (`forge`), routing, ORM, queues, events, and DI — all in one package.
+FaberJS is a full-featured, opinionated Node.js/TypeScript backend framework that mirrors Laravel's developer experience. It targets Laravel developers moving to Node.js who want a unified framework with conventions, a CLI (`faberjs`), routing, ORM, queues, events, and DI — all in one package.
 
-All packages are published under the `@forgejs/` npm scope. The CLI binary is `forge` (Artisan equivalent).
+All packages are published under the `/` npm scope. The CLI binary is `faberjs` (Artisan equivalent).
 
 ---
 
 ## Monorepo Structure
 
 ```
-forgejs/
+faberjs/
 ├── packages/
-│   ├── core/        @forgejs/core        IoC container, service providers, facades
-│   ├── router/      @forgejs/router       HTTP routing, route groups, model binding
-│   ├── orm/         @forgejs/orm          ActiveRecord ORM, migrations, relationships
-│   ├── http/        @forgejs/http         Request/Response, middleware pipeline
-│   ├── console/     @forgejs/console      Forge CLI (make:*, db:*, queue:*, tinker)
-│   ├── queue/       @forgejs/queue        BullMQ job dispatch and workers
-│   ├── events/      @forgejs/events       Event/Listener bus with queued listeners
-│   ├── auth/        @forgejs/auth         JWT guards and authorization policies
-│   ├── config/      @forgejs/config       .env + typed config file loading
-│   ├── validation/  @forgejs/validation   Rule engine + FormRequest
-│   ├── cache/       @forgejs/cache        Redis and in-memory cache abstraction
-│   └── testing/     @forgejs/testing      HTTP test client + DB assertions
-├── create-forgejs/                         npm create forgejs@latest scaffolder
+│   ├── core/        /core        IoC container, service providers, facades
+│   ├── router/      /router       HTTP routing, route groups, model binding
+│   ├── orm/         /orm          ActiveRecord ORM, migrations, relationships
+│   ├── http/        /http         Request/Response, middleware pipeline
+│   ├── console/     /console      Forge CLI (make:*, db:*, queue:*, tinker)
+│   ├── queue/       /queue        BullMQ job dispatch and workers
+│   ├── events/      /events       Event/Listener bus with queued listeners
+│   ├── auth/        /auth         JWT guards and authorization policies
+│   ├── config/      /config       .env + typed config file loading
+│   ├── validation/  /validation   Rule engine + FormRequest
+│   ├── cache/       /cache        Redis and in-memory cache abstraction
+│   └── testing/     /testing      HTTP test client + DB assertions
+├── create-faberjs/                         npm create faberjs@latest scaffolder
 ├── stubs/                                  Code generation templates
 ├── docs/
 └── examples/
@@ -71,8 +71,8 @@ pnpm changeset        # create a new changeset for versioning
 
 ## Architecture Principles
 
-- **IoC Container is the spine.** Everything resolves through `@forgejs/core`'s container. Service providers register bindings; facades proxy to container-resolved instances. Nothing is a global singleton outside the container.
-- **Fastify is an implementation detail.** The `@forgejs/http` and `@forgejs/router` packages wrap Fastify completely. User code never imports from Fastify. This keeps the transport layer swappable.
+- **IoC Container is the spine.** Everything resolves through `/core`'s container. Service providers register bindings; facades proxy to container-resolved instances. Nothing is a global singleton outside the container.
+- **Fastify is an implementation detail.** The `/http` and `/router` packages wrap Fastify completely. User code never imports from Fastify. This keeps the transport layer swappable.
 - **Knex is an implementation detail.** The ORM's query builder wraps Knex internally. Users only interact with `Model.where(...).get()` — the underlying SQL dialect adapter is hidden.
 - **Middleware is an onion.** The HTTP pipeline processes middleware as a stack (request in → middleware chain → controller → response out). Global middleware is registered in `bootstrap/app.ts`; per-route middleware is registered on the router.
 - **FormRequest validates before the controller runs.** Auto-injected FormRequest subclasses are resolved before the controller method is called; validation or authorization failure short-circuits with 422/403.
@@ -84,15 +84,15 @@ pnpm changeset        # create a new changeset for versioning
 | Phase | Package(s) | Status | Key Dependency |
 |---|---|---|---|
 | 1 | Monorepo scaffolding | **Done** | — |
-| 2 | `@forgejs/core`, `@forgejs/config` | Not started | Phase 1 |
-| 3 | `@forgejs/http`, `@forgejs/router` | Not started | Phase 2 |
-| 4 | `@forgejs/orm` | Not started | Phase 2 |
-| 5 | `@forgejs/validation` | Not started | Phase 3 |
-| 6 | `@forgejs/console` | Not started | Phase 2, 4 |
-| 7 | `@forgejs/queue` | Not started | Phase 2, 6 |
-| 8 | `@forgejs/events` | Not started | Phase 2, 7 |
-| 9 | `@forgejs/auth` | Not started | Phase 3, 4, 5 |
-| 10 | `@forgejs/testing`, `create-forgejs` | Not started | All |
+| 2 | `/core`, `/config` | Not started | Phase 1 |
+| 3 | `/http`, `/router` | Not started | Phase 2 |
+| 4 | `/orm` | Not started | Phase 2 |
+| 5 | `/validation` | Not started | Phase 3 |
+| 6 | `/console` | Not started | Phase 2, 4 |
+| 7 | `/queue` | Not started | Phase 2, 6 |
+| 8 | `/events` | Not started | Phase 2, 7 |
+| 9 | `/auth` | Not started | Phase 3, 4, 5 |
+| 10 | `/testing`, `create-faberjs` | Not started | All |
 
 ---
 

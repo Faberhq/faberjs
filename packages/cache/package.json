@@ -1,7 +1,7 @@
 {
-  "name": "@forgejs/cache",
+  "name": "@faberjs/cache",
   "version": "0.0.1",
-  "description": "ForgeJS cache abstraction supporting Redis and in-memory drivers",
+  "description": "FaberJS cache abstraction supporting Redis and in-memory drivers",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -21,7 +21,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "keywords": [
-    "forgejs",
+    "faberjs",
     "framework",
     "cache",
     "redis",

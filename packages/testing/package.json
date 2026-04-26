@@ -1,7 +1,7 @@
 {
-  "name": "@forgejs/testing",
+  "name": "@faberjs/testing",
   "version": "0.0.1",
-  "description": "ForgeJS test helpers, HTTP test client, and database assertions",
+  "description": "FaberJS test helpers, HTTP test client, and database assertions",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -21,7 +21,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "keywords": [
-    "forgejs",
+    "faberjs",
     "framework",
     "testing",
     "http-client",

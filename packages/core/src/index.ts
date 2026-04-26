@@ -1,2 +1,2 @@
-// @forgejs/core — App kernel, service container, service providers, and facades
+// /core — App kernel, service container, service providers, and facades
 export {};

@@ -1,7 +1,7 @@
 {
-  "name": "@forgejs/orm",
+  "name": "@faberjs/orm",
   "version": "0.0.1",
-  "description": "ForgeJS Eloquent-like ActiveRecord ORM with query builder, relationships, and migrations",
+  "description": "FaberJS Eloquent-like ActiveRecord ORM with query builder, relationships, and migrations",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -21,7 +21,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "keywords": [
-    "forgejs",
+    "faberjs",
     "framework",
     "orm",
     "database",
