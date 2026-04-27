@@ -8,7 +8,6 @@ import {
   writeGeneratedFile,
 } from './generator';
 
-// Read version from package.json
 function getVersion(): string {
   try {
     const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8')) as {
@@ -26,10 +25,8 @@ program.name('faber').description('FaberJS CLI — the Artisan equivalent').vers
 
 // ── make:* generators ──────────────────────────────────────────────
 
-const make = program.command('make').description('Generate application files');
-
-make
-  .command('controller <name>')
+program
+  .command('make:controller <name>')
   .description('Create a new controller')
   .action((name: string) => {
     const result = generateFile('controller', name, cwd);
@@ -37,8 +34,8 @@ make
     process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
   });
 
-make
-  .command('service <name>')
+program
+  .command('make:service <name>')
   .description('Create a new service')
   .action((name: string) => {
     const result = generateFile('service', name, cwd);
@@ -46,8 +43,8 @@ make
     process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
   });
 
-make
-  .command('model <name>')
+program
+  .command('make:model <name>')
   .description('Create a new model')
   .option('-m, --migration', 'Also create a migration for this model')
   .action((name: string, options: { migration?: boolean }) => {
@@ -73,8 +70,8 @@ make
     }
   });
 
-make
-  .command('migration <name>')
+program
+  .command('make:migration <name>')
   .description('Create a new migration')
   .action((name: string) => {
     const className = makeMigrationClassName(name);
@@ -88,8 +85,8 @@ make
     process.stdout.write(`\x1b[32mCREATED\x1b[0m ${finalPath}\n`);
   });
 
-make
-  .command('job <name>')
+program
+  .command('make:job <name>')
   .description('Create a new job')
   .action((name: string) => {
     const result = generateFile('job', name, cwd);
@@ -97,8 +94,8 @@ make
     process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
   });
 
-make
-  .command('event <name>')
+program
+  .command('make:event <name>')
   .description('Create a new event')
   .action((name: string) => {
     const result = generateFile('event', name, cwd);
@@ -106,8 +103,8 @@ make
     process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
   });
 
-make
-  .command('listener <name>')
+program
+  .command('make:listener <name>')
   .description('Create a new listener')
   .action((name: string) => {
     const result = generateFile('listener', name, cwd);
@@ -115,8 +112,8 @@ make
     process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
   });
 
-make
-  .command('middleware <name>')
+program
+  .command('make:middleware <name>')
   .description('Create a new middleware')
   .action((name: string) => {
     const result = generateFile('middleware', name, cwd);
@@ -124,8 +121,8 @@ make
     process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
   });
 
-make
-  .command('command <name>')
+program
+  .command('make:command <name>')
   .description('Create a new console command')
   .action((name: string) => {
     const result = generateFile('command', name, cwd);
@@ -133,8 +130,8 @@ make
     process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
   });
 
-make
-  .command('provider <name>')
+program
+  .command('make:provider <name>')
   .description('Create a new service provider')
   .action((name: string) => {
     const result = generateFile('provider', name, cwd);
@@ -142,8 +139,8 @@ make
     process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
   });
 
-make
-  .command('agent <name>')
+program
+  .command('make:agent <name>')
   .description('Create a new AI agent')
   .action((name: string) => {
     const result = generateFile('agent', name, cwd);
@@ -153,30 +150,32 @@ make
 
 // ── db:* commands ──────────────────────────────────────────────────
 
-const db = program.command('db').description('Database management commands');
-
-db.command('migrate')
+program
+  .command('db:migrate')
   .description('Run pending migrations')
   .action(async () => {
     const { runMigrations } = await import('./commands/db');
     await runMigrations(cwd);
   });
 
-db.command('rollback')
+program
+  .command('db:rollback')
   .description('Roll back the last batch of migrations')
   .action(async () => {
     const { rollbackMigrations } = await import('./commands/db');
     await rollbackMigrations(cwd);
   });
 
-db.command('seed')
+program
+  .command('db:seed')
   .description('Run database seeders')
   .action(async () => {
     const { runSeeders } = await import('./commands/db');
     await runSeeders(cwd);
   });
 
-db.command('status')
+program
+  .command('db:status')
   .description('Show migration status')
   .action(async () => {
     const { showMigrationStatus } = await import('./commands/db');
