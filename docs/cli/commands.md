@@ -5,22 +5,22 @@ The `faber` CLI is the Artisan equivalent for FaberJS. It handles code generatio
 Like Artisan, every `faber` command has a description you can see with `--help`:
 
 ```bash
-faber --help
-faber make --help
-faber db --help
+npx faber --help
+npx faber make --help
+npx faber db --help
 ```
 
 ---
 
 ## Development server
 
-### `faber serve`
+### `npx faber serve`
 
 Start the development server with hot reload. Watches for file changes using `tsx --watch`.
 
 ```bash
-faber serve
-faber serve --port 8080
+npx faber serve
+npx faber serve --port 8080
 ```
 
 **Options:**
@@ -35,12 +35,12 @@ The server reads your `bootstrap/app.ts` file and re-starts automatically on cha
 
 ## Database commands
 
-### `faber db:migrate`
+### `npx faber db:migrate`
 
 Run all pending migrations in chronological order. Each migration batch is tracked so rollback knows which files to reverse.
 
 ```bash
-faber db:migrate
+npx faber db:migrate
 ```
 
 Output:
@@ -52,20 +52,20 @@ Migrating: 2024_01_02_120000_create_posts_table
 Migrated:  2024_01_02_120000_create_posts_table (11ms)
 ```
 
-### `faber db:rollback`
+### `npx faber db:rollback`
 
 Roll back the last batch of migrations by running each `down()` method.
 
 ```bash
-faber db:rollback
+npx faber db:rollback
 ```
 
-### `faber db:status`
+### `npx faber db:status`
 
 Show which migrations have run and which are pending.
 
 ```bash
-faber db:status
+npx faber db:status
 ```
 
 Output:
@@ -77,12 +77,12 @@ Ran                                                   Batch
 ✗ 2024_01_03_090000_add_bio_to_users_table           -
 ```
 
-### `faber db:seed`
+### `npx faber db:seed`
 
 Run all database seeders found in `database/seeders/`.
 
 ```bash
-faber db:seed
+npx faber db:seed
 ```
 
 ---
@@ -91,21 +91,21 @@ faber db:seed
 
 All generators follow the same pattern: they create a new file in the appropriate directory with a stub. File paths are printed to the console on creation.
 
-### `faber make:controller <Name>`
+### `npx faber make:controller <Name>`
 
 Creates `app/controllers/<Name>Controller.ts` with all five resource methods (`index`, `show`, `store`, `update`, `destroy`).
 
 ```bash
-faber make:controller User
+npx faber make:controller User
 # CREATED app/controllers/UserController.ts
 ```
 
-### `faber make:model <Name>`
+### `npx faber make:model <Name>`
 
 Creates `app/models/<Name>.ts` with `table` and `fillable` stubs.
 
 ```bash
-faber make:model Post
+npx faber make:model Post
 # CREATED app/models/Post.ts
 ```
 
@@ -116,83 +116,83 @@ faber make:model Post
 | `-m, --migration` | Also create a migration for this model |
 
 ```bash
-faber make:model Post -m
+npx faber make:model Post -m
 # CREATED app/models/Post.ts
 # CREATED database/migrations/2024_01_15_120000_create_posts_table.ts
 ```
 
-### `faber make:service <Name>`
+### `npx faber make:service <Name>`
 
 Creates `app/services/<Name>Service.ts` with `@Injectable()` and `extends Service`.
 
 ```bash
-faber make:service User
+npx faber make:service User
 # CREATED app/services/UserService.ts
 ```
 
-### `faber make:migration <Name>`
+### `npx faber make:migration <Name>`
 
 Creates a timestamped migration file in `database/migrations/`.
 
 ```bash
-faber make:migration create_comments_table
+npx faber make:migration create_comments_table
 # CREATED database/migrations/2024_01_15_130000_create_comments_table.ts
 
-faber make:migration add_avatar_to_users_table
+npx faber make:migration add_avatar_to_users_table
 # CREATED database/migrations/2024_01_15_130001_add_avatar_to_users_table.ts
 ```
 
-### `faber make:job <Name>`
+### `npx faber make:job <Name>`
 
 Creates `app/jobs/<Name>Job.ts` with `queue`, `tries`, and a `handle()` stub.
 
 ```bash
-faber make:job SendWelcomeEmail
+npx faber make:job SendWelcomeEmail
 # CREATED app/jobs/SendWelcomeEmailJob.ts
 ```
 
-### `faber make:event <Name>`
+### `npx faber make:event <Name>`
 
 Creates `app/events/<Name>Event.ts` as an interface with a `type` field.
 
 ```bash
-faber make:event UserRegistered
+npx faber make:event UserRegistered
 # CREATED app/events/UserRegisteredEvent.ts
 ```
 
-### `faber make:listener <Name>`
+### `npx faber make:listener <Name>`
 
 Creates `app/listeners/<Name>Listener.ts` with a `handle(event)` stub.
 
 ```bash
-faber make:listener SendWelcomeEmail
+npx faber make:listener SendWelcomeEmail
 # CREATED app/listeners/SendWelcomeEmailListener.ts
 ```
 
-### `faber make:middleware <Name>`
+### `npx faber make:middleware <Name>`
 
 Creates `app/middleware/<Name>Middleware.ts` implementing the `Middleware` interface.
 
 ```bash
-faber make:middleware Throttle
+npx faber make:middleware Throttle
 # CREATED app/middleware/ThrottleMiddleware.ts
 ```
 
-### `faber make:provider <Name>`
+### `npx faber make:provider <Name>`
 
 Creates `app/providers/<Name>ServiceProvider.ts` with `register()` and `boot()` stubs.
 
 ```bash
-faber make:provider Payment
+npx faber make:provider Payment
 # CREATED app/providers/PaymentServiceProvider.ts
 ```
 
-### `faber make:command <Name>`
+### `npx faber make:command <Name>`
 
 Creates `app/commands/<Name>Command.ts` with a `signature`, `description`, and `handle()` method.
 
 ```bash
-faber make:command SendDailyReport
+npx faber make:command SendDailyReport
 # CREATED app/commands/SendDailyReportCommand.ts
 ```
 
@@ -211,12 +211,12 @@ export class SendDailyReportCommand extends Command {
 }
 ```
 
-### `faber make:agent <Name>`
+### `npx faber make:agent <Name>`
 
 Creates `app/agents/<Name>Agent.ts` with a `model`, `systemPrompt`, and an example `@Tool` method.
 
 ```bash
-faber make:agent Support
+npx faber make:agent Support
 # CREATED app/agents/SupportAgent.ts
 ```
 
@@ -224,12 +224,12 @@ faber make:agent Support
 
 ## Route inspection
 
-### `faber route:list`
+### `npx faber route:list`
 
 List all registered routes. Reads your application's route files and prints a table.
 
 ```bash
-faber route:list
+npx faber route:list
 ```
 
 Output:
@@ -249,12 +249,12 @@ POST     /admin/posts                  PostController        store
 
 ## Interactive REPL
 
-### `faber tinker`
+### `npx faber tinker`
 
 Start an interactive Node.js REPL with your application already bootstrapped. Like Laravel's `php artisan tinker`, this gives you a live console to test queries, dispatch jobs, and inspect your data.
 
 ```bash
-faber tinker
+npx faber tinker
 ```
 
 ```
@@ -268,23 +268,23 @@ FaberJS Tinker — application ready
 
 ## Command quick reference
 
-| Command                        | Description                                   |
-| ------------------------------ | --------------------------------------------- |
-| `faber serve`                  | Start the dev server (hot reload)             |
-| `faber db:migrate`             | Run pending migrations                        |
-| `faber db:rollback`            | Roll back the last migration batch            |
-| `faber db:status`              | Show migration status                         |
-| `faber db:seed`                | Run database seeders                          |
-| `faber make:controller <Name>` | Generate a controller                         |
-| `faber make:model <Name> [-m]` | Generate a model (and optionally a migration) |
-| `faber make:service <Name>`    | Generate a service                            |
-| `faber make:migration <Name>`  | Generate a migration                          |
-| `faber make:job <Name>`        | Generate a job                                |
-| `faber make:event <Name>`      | Generate an event interface                   |
-| `faber make:listener <Name>`   | Generate a listener                           |
-| `faber make:middleware <Name>` | Generate middleware                           |
-| `faber make:provider <Name>`   | Generate a service provider                   |
-| `faber make:command <Name>`    | Generate a custom CLI command                 |
-| `faber make:agent <Name>`      | Generate an AI agent                          |
-| `faber route:list`             | List all registered routes                    |
-| `faber tinker`                 | Start an interactive REPL                     |
+| Command                            | Description                                   |
+| ---------------------------------- | --------------------------------------------- |
+| `npx faber serve`                  | Start the dev server (hot reload)             |
+| `npx faber db:migrate`             | Run pending migrations                        |
+| `npx faber db:rollback`            | Roll back the last migration batch            |
+| `npx faber db:status`              | Show migration status                         |
+| `npx faber db:seed`                | Run database seeders                          |
+| `npx faber make:controller <Name>` | Generate a controller                         |
+| `npx faber make:model <Name> [-m]` | Generate a model (and optionally a migration) |
+| `npx faber make:service <Name>`    | Generate a service                            |
+| `npx faber make:migration <Name>`  | Generate a migration                          |
+| `npx faber make:job <Name>`        | Generate a job                                |
+| `npx faber make:event <Name>`      | Generate an event interface                   |
+| `npx faber make:listener <Name>`   | Generate a listener                           |
+| `npx faber make:middleware <Name>` | Generate middleware                           |
+| `npx faber make:provider <Name>`   | Generate a service provider                   |
+| `npx faber make:command <Name>`    | Generate a custom CLI command                 |
+| `npx faber make:agent <Name>`      | Generate an AI agent                          |
+| `npx faber route:list`             | List all registered routes                    |
+| `npx faber tinker`                 | Start an interactive REPL                     |

@@ -5,13 +5,13 @@ A FaberJS model is an ActiveRecord class that maps to a database table. Each mod
 ## Generating a model
 
 ```bash
-faber make:model Post
+npx faber make:model Post
 ```
 
 With a migration at the same time:
 
 ```bash
-faber make:model Post -m
+npx faber make:model Post -m
 ```
 
 Generated file (`app/models/Post.ts`):

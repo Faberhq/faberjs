@@ -112,7 +112,7 @@ export class PostController extends Controller {
 
 ## Named routes
 
-Chain `.name()` on any route to give it a name. Named routes can be inspected with `faber route:list`.
+Chain `.name()` on any route to give it a name. Named routes can be inspected with `npx faber route:list`.
 
 ```typescript
 Route.get('/users', [UserController, 'index']).name('users.index');
@@ -134,7 +134,7 @@ Middleware strings refer to keys registered in your `HttpKernel`. See [Middlewar
 Use the CLI to see all registered routes:
 
 ```bash
-faber route:list
+npx faber route:list
 ```
 
 Output:

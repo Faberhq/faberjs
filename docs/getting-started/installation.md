@@ -54,8 +54,8 @@ Install dependencies, run migrations, and start the dev server:
 
 ```bash
 pnpm install
-faber db:migrate
-faber serve
+npx faber db:migrate
+npx faber serve
 ```
 
 The dev server starts on port `3000` by default with hot reload powered by `tsx --watch`.
@@ -67,7 +67,7 @@ Server running at http://localhost:3000
 To use a different port:
 
 ```bash
-faber serve --port 8080
+npx faber serve --port 8080
 ```
 
 ## Installing into an existing project

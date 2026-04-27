@@ -5,7 +5,7 @@ Services contain your business logic. Controllers call services; services orches
 ## Generating a service
 
 ```bash
-faber make:service UserService
+npx faber make:service UserService
 ```
 
 Generated file (`app/services/UserService.ts`):

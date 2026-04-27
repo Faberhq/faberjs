@@ -7,7 +7,7 @@ Middleware sits between the HTTP layer and your controllers. Each middleware rec
 Implement the `Middleware` interface from `@faber-js/http`. Generate a stub with the CLI:
 
 ```bash
-faber make:middleware ThrottleMiddleware
+npx faber make:middleware ThrottleMiddleware
 ```
 
 Generated file (`app/middleware/ThrottleMiddleware.ts`):

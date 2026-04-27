@@ -32,7 +32,7 @@ export default {
 ## Creating a job
 
 ```bash
-faber make:job SendWelcomeEmail
+npx faber make:job SendWelcomeEmail
 ```
 
 Generated file (`app/jobs/SendWelcomeEmailJob.ts`):
@@ -189,7 +189,7 @@ await dispatch(new ProcessUserJob(user.getAttribute('id') as number));
 
 ## Running workers
 
-Start a queue worker to process jobs. This is separate from `faber serve`:
+Start a queue worker to process jobs. This is separate from `npx faber serve`:
 
 ```bash
 # There is no built-in faber queue:work command yet — run your worker script directly:

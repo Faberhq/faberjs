@@ -27,7 +27,7 @@ pnpm add @faber-js/ai
 ## Generating an agent
 
 ```bash
-faber make:agent Support
+npx faber make:agent Support
 ```
 
 Generated file (`app/agents/SupportAgent.ts`):

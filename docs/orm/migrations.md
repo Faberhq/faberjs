@@ -5,13 +5,13 @@ Migrations are version-controlled schema changes. Each migration file has an `up
 ## Creating a migration
 
 ```bash
-faber make:migration create_posts_table
+npx faber make:migration create_posts_table
 ```
 
 When creating a migration alongside a model, use the `-m` flag:
 
 ```bash
-faber make:model Post -m
+npx faber make:model Post -m
 ```
 
 Generated file (`database/migrations/2024_01_15_120000_create_posts_table.ts`):
@@ -36,9 +36,9 @@ export default class CreatePostsTable extends Migration {
 ## Running migrations
 
 ```bash
-faber db:migrate      # run all pending migrations
-faber db:rollback     # roll back the last batch
-faber db:status       # show migration status
+npx faber db:migrate      # run all pending migrations
+npx faber db:rollback     # roll back the last batch
+npx faber db:status       # show migration status
 ```
 
 Migrations run in chronological order based on the timestamp in the filename. Each batch is tracked so `rollback` knows which migrations to reverse together.
@@ -168,18 +168,18 @@ Filenames are prefixed with a timestamp (`YYYY_MM_DD_HHMMSS_`) followed by a sna
 2024_01_03_090000_add_bio_to_users_table.ts
 ```
 
-The `faber make:migration` command generates the timestamp automatically.
+The `npx faber make:migration` command generates the timestamp automatically.
 
 ## Database seeders
 
 Seeders populate the database with test or default data. Generate one with:
 
 ```bash
-faber make:migration seed_users   # convention: prefix with seed_
+npx faber make:migration seed_users   # convention: prefix with seed_
 ```
 
 Or write a seeder class manually in `database/seeders/` and run it:
 
 ```bash
-faber db:seed
+npx faber db:seed
 ```

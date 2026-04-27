@@ -5,7 +5,7 @@ Controllers are the HTTP entry point for your application. They receive a `Reque
 ## Generating a controller
 
 ```bash
-faber make:controller UserController
+npx faber make:controller UserController
 ```
 
 This creates `app/controllers/UserController.ts`:

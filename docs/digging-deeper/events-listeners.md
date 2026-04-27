@@ -19,7 +19,7 @@ app.register(new EventServiceProvider(app));
 Generate a stub:
 
 ```bash
-faber make:event UserRegistered
+npx faber make:event UserRegistered
 ```
 
 Events are plain TypeScript interfaces (or objects). There is no base class required. The only convention is a `type` field:
@@ -43,7 +43,7 @@ await event({ type: 'UserRegistered', userId: user.id });
 ## Defining a listener
 
 ```bash
-faber make:listener SendWelcomeEmailListener
+npx faber make:listener SendWelcomeEmailListener
 ```
 
 ```typescript

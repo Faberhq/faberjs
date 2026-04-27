@@ -58,8 +58,8 @@ async function main(): Promise<void> {
   process.stdout.write(`\n${pc.bold('Next steps:')}\n`);
   process.stdout.write(`  ${pc.cyan('cd')} ${projectName}\n`);
   process.stdout.write(`  ${pc.cyan('pnpm install')}\n`);
-  process.stdout.write(`  ${pc.cyan('faber db:migrate')}\n`);
-  process.stdout.write(`  ${pc.cyan('faber serve')}\n\n`);
+  process.stdout.write(`  ${pc.cyan('npx faber db:migrate')}\n`);
+  process.stdout.write(`  ${pc.cyan('npx faber serve')}\n\n`);
 }
 
 main().catch((err: unknown) => {
