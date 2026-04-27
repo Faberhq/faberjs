@@ -6,7 +6,11 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['packages/*/src/**/*.{test,spec}.ts', 'packages/*/tests/**/*.{test,spec}.ts'],
+    include: [
+      'packages/*/src/**/*.{test,spec}.ts',
+      'packages/*/tests/**/*.{test,spec}.ts',
+      'create-faberjs/src/**/*.{test,spec}.ts',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

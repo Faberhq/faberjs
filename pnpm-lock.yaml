@@ -60,7 +60,11 @@ importers:
         specifier: ^1.6.0
         version: 1.6.1(@types/node@20.19.39)
 
-  create-faberjs: {}
+  create-faberjs:
+    dependencies:
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
 
   packages/auth:
     dependencies:
@@ -168,7 +172,17 @@ importers:
         specifier: workspace:*
         version: link:../http
 
-  packages/testing: {}
+  packages/testing:
+    dependencies:
+      '@faberjs/core':
+        specifier: workspace:*
+        version: link:../core
+      '@faberjs/http':
+        specifier: workspace:*
+        version: link:../http
+      '@faberjs/orm':
+        specifier: workspace:*
+        version: link:../orm
 
   packages/validation:
     dependencies:

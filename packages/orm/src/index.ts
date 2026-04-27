@@ -1,4 +1,4 @@
-export { createConnection, destroyConnection } from './connection';
+export { createConnection, getConnection, destroyConnection } from './connection';
 export { Model } from './model';
 export { Schema } from './schema';
 export { Migration, MigrationRunner } from './migration';

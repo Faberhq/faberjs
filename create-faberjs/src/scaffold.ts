@@ -1,0 +1,399 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+
+export interface ScaffoldOptions {
+  readonly projectName: string;
+  readonly targetDir: string;
+  readonly dbDriver: 'sqlite' | 'postgres' | 'mysql';
+  readonly includeAuth: boolean;
+}
+
+type FileMap = Record<string, string>;
+
+function buildFiles(opts: ScaffoldOptions): FileMap {
+  const { projectName, dbDriver, includeAuth } = opts;
+
+  const dbConfig = buildDbConfig(dbDriver);
+  const authImports = includeAuth ? `\nimport { AuthServiceProvider } from '@faberjs/auth';` : '';
+  const authProvider = includeAuth ? `\n  app.register(new AuthServiceProvider(app));` : '';
+
+  return {
+    'package.json': JSON.stringify(
+      {
+        name: projectName,
+        version: '0.0.1',
+        private: true,
+        type: 'module',
+        scripts: {
+          dev: 'faber serve',
+          migrate: 'faber db:migrate',
+          'migrate:rollback': 'faber db:rollback',
+        },
+        dependencies: {
+          '@faberjs/core': '0.0.1',
+          '@faberjs/config': '0.0.1',
+          '@faberjs/http': '0.0.1',
+          '@faberjs/router': '0.0.1',
+          '@faberjs/orm': '0.0.1',
+          '@faberjs/queue': '0.0.1',
+          '@faberjs/events': '0.0.1',
+          '@faberjs/validation': '0.0.1',
+          '@faberjs/console': '0.0.1',
+          ...(includeAuth ? { '@faberjs/auth': '0.0.1' } : {}),
+          'reflect-metadata': '^0.2.2',
+        },
+        devDependencies: {
+          typescript: '^5.8.3',
+          tsx: '^4.19.3',
+          '@types/node': '^20.19.0',
+        },
+      },
+      null,
+      2,
+    ),
+
+    'tsconfig.json': JSON.stringify(
+      {
+        compilerOptions: {
+          target: 'ES2022',
+          module: 'NodeNext',
+          moduleResolution: 'NodeNext',
+          lib: ['ES2022'],
+          outDir: 'dist',
+          rootDir: '.',
+          strict: true,
+          experimentalDecorators: true,
+          emitDecoratorMetadata: true,
+          esModuleInterop: true,
+          resolveJsonModule: true,
+          skipLibCheck: true,
+          declaration: true,
+          declarationMap: true,
+          sourceMap: true,
+        },
+        include: ['**/*.ts'],
+        exclude: ['node_modules', 'dist'],
+      },
+      null,
+      2,
+    ),
+
+    '.env': [
+      `APP_NAME="${projectName}"`,
+      'APP_PORT=3000',
+      '',
+      ...dbConfig.envLines,
+      '',
+      'JWT_SECRET=change-me-in-production',
+    ].join('\n'),
+
+    '.env.example': [
+      `APP_NAME="${projectName}"`,
+      'APP_PORT=3000',
+      '',
+      ...dbConfig.exampleLines,
+      '',
+      'JWT_SECRET=your-jwt-secret',
+    ].join('\n'),
+
+    '.gitignore': ['node_modules', 'dist', '.env', '*.tsbuildinfo', 'storage/'].join('\n'),
+
+    'faber.config.ts': [
+      `export default {`,
+      `  name: '${projectName}',`,
+      `  port: Number(process.env['APP_PORT'] ?? 3000),`,
+      `};`,
+    ].join('\n'),
+
+    'bootstrap/app.ts': [
+      `import 'reflect-metadata';`,
+      `import { Application } from '@faberjs/core';`,
+      `import { HttpKernel } from '@faberjs/http';`,
+      `import { RouterServiceProvider } from '@faberjs/router';`,
+      `import { OrmServiceProvider } from '@faberjs/orm';`,
+      authImports,
+      ``,
+      `const app = new Application();`,
+      ``,
+      `app.register(new RouterServiceProvider(app));`,
+      `app.register(new OrmServiceProvider(app));`,
+      authProvider,
+      ``,
+      `await app.boot();`,
+      ``,
+      `// Load routes`,
+      `await import('../routes/api.ts');`,
+      ``,
+      `const kernel = app.make<HttpKernel>('http.kernel');`,
+      `const port = Number(process.env['APP_PORT'] ?? 3000);`,
+      `await kernel.listen(port);`,
+      ``,
+      `console.log(\`Server running on port \${port}\`);`,
+    ].join('\n'),
+
+    'routes/api.ts': [
+      `import { Route } from '@faberjs/router';`,
+      `import { UserController } from '../app/controllers/UserController.ts';`,
+      ``,
+      `Route.get('/health', () => Promise.resolve({ status: 'ok' }));`,
+      ``,
+      `Route.group({ prefix: '/api/v1' }, () => {`,
+      `  Route.get('/users', [UserController, 'index']);`,
+      `  Route.post('/users', [UserController, 'store']);`,
+      `  Route.get('/users/:id', [UserController, 'show']);`,
+      `  Route.put('/users/:id', [UserController, 'update']);`,
+      `  Route.delete('/users/:id', [UserController, 'destroy']);`,
+      `});`,
+    ].join('\n'),
+
+    'app/controllers/UserController.ts': [
+      `import { Injectable } from '@faberjs/core';`,
+      `import { Controller } from '@faberjs/router';`,
+      `import type { Request } from '@faberjs/http';`,
+      `import { Response } from '@faberjs/http';`,
+      `import { UserService } from '../services/UserService.ts';`,
+      ``,
+      `@Injectable()`,
+      `export class UserController extends Controller {`,
+      `  constructor(private readonly userService: UserService) {`,
+      `    super();`,
+      `  }`,
+      ``,
+      `  async index(_req: Request): Promise<Response> {`,
+      `    const users = await this.userService.all();`,
+      `    return this.json({ data: users });`,
+      `  }`,
+      ``,
+      `  async store(req: Request): Promise<Response> {`,
+      `    const user = await this.userService.create(req.all());`,
+      `    return this.json({ data: user }, 201);`,
+      `  }`,
+      ``,
+      `  async show(req: Request): Promise<Response> {`,
+      `    const user = await this.userService.find(Number(req.route('id')));`,
+      `    return this.json({ data: user });`,
+      `  }`,
+      ``,
+      `  async update(req: Request): Promise<Response> {`,
+      `    const user = await this.userService.update(Number(req.route('id')), req.all());`,
+      `    return this.json({ data: user });`,
+      `  }`,
+      ``,
+      `  async destroy(req: Request): Promise<Response> {`,
+      `    await this.userService.delete(Number(req.route('id')));`,
+      `    return this.noContent();`,
+      `  }`,
+      `}`,
+    ].join('\n'),
+
+    'app/services/UserService.ts': [
+      `import { Injectable, Service } from '@faberjs/core';`,
+      `import { User } from '../models/User.ts';`,
+      ``,
+      `@Injectable()`,
+      `export class UserService extends Service {`,
+      `  async all(): Promise<User[]> {`,
+      `    return User.all<User>();`,
+      `  }`,
+      ``,
+      `  async find(id: number): Promise<User | null> {`,
+      `    return User.find<User>(id);`,
+      `  }`,
+      ``,
+      `  async create(attrs: Record<string, unknown>): Promise<User> {`,
+      `    return User.create<User>(attrs);`,
+      `  }`,
+      ``,
+      `  async update(id: number, attrs: Record<string, unknown>): Promise<User | null> {`,
+      `    const user = await User.find<User>(id);`,
+      `    if (!user) return null;`,
+      `    await user.update(attrs);`,
+      `    return user;`,
+      `  }`,
+      ``,
+      `  async delete(id: number): Promise<void> {`,
+      `    const user = await User.find<User>(id);`,
+      `    if (user) await user.delete();`,
+      `  }`,
+      `}`,
+    ].join('\n'),
+
+    'app/models/User.ts': [
+      `import { Model } from '@faberjs/orm';`,
+      ``,
+      `export class User extends Model {`,
+      `  static table = 'users';`,
+      `  static fillable = ['name', 'email', 'password'];`,
+      `  static hidden = ['password'];`,
+      `}`,
+    ].join('\n'),
+
+    'app/providers/AppServiceProvider.ts': [
+      `import { ServiceProvider } from '@faberjs/core';`,
+      ``,
+      `export class AppServiceProvider extends ServiceProvider {`,
+      `  register(): void {`,
+      `    // Register application bindings here`,
+      `  }`,
+      ``,
+      `  async boot(): Promise<void> {`,
+      `    // Run after all providers are registered`,
+      `  }`,
+      `}`,
+    ].join('\n'),
+
+    'database/migrations/0001_create_users_table.ts': [
+      `import { Migration, Schema } from '@faberjs/orm';`,
+      ``,
+      `export default class CreateUsersTable extends Migration {`,
+      `  async up(): Promise<void> {`,
+      `    await Schema.create('users', (table) => {`,
+      `      table.increments('id');`,
+      `      table.string('name');`,
+      `      table.string('email').unique();`,
+      `      table.string('password');`,
+      `      table.timestamps();`,
+      `    });`,
+      `  }`,
+      ``,
+      `  async down(): Promise<void> {`,
+      `    await Schema.dropIfExists('users');`,
+      `  }`,
+      `}`,
+    ].join('\n'),
+
+    'config/app.ts': [
+      `import { env } from '@faberjs/config';`,
+      ``,
+      `export default {`,
+      `  name: env('APP_NAME', '${projectName}'),`,
+      `  port: env('APP_PORT', 3000),`,
+      `};`,
+    ].join('\n'),
+
+    'config/database.ts': [
+      `import { env } from '@faberjs/config';`,
+      ``,
+      `export default {`,
+      `  default: env('DB_CONNECTION', '${dbDriver}'),`,
+      `  connections: {`,
+      ...dbConfig.configLines,
+      `  },`,
+      `};`,
+    ].join('\n'),
+  };
+}
+
+function buildDbConfig(driver: ScaffoldOptions['dbDriver']): {
+  envLines: string[];
+  exampleLines: string[];
+  configLines: string[];
+} {
+  if (driver === 'sqlite') {
+    return {
+      envLines: ['DB_CONNECTION=better-sqlite3', 'DB_DATABASE=./storage/database.sqlite'],
+      exampleLines: ['DB_CONNECTION=better-sqlite3', 'DB_DATABASE=./storage/database.sqlite'],
+      configLines: [
+        `    'better-sqlite3': {`,
+        `      client: 'better-sqlite3',`,
+        `      connection: { filename: env('DB_DATABASE', './storage/database.sqlite') },`,
+        `    },`,
+      ],
+    };
+  }
+
+  if (driver === 'mysql') {
+    return {
+      envLines: [
+        'DB_CONNECTION=mysql2',
+        'DB_HOST=127.0.0.1',
+        'DB_PORT=3306',
+        'DB_DATABASE=faberjs',
+        'DB_USERNAME=root',
+        'DB_PASSWORD=',
+      ],
+      exampleLines: [
+        'DB_CONNECTION=mysql2',
+        'DB_HOST=127.0.0.1',
+        'DB_PORT=3306',
+        'DB_DATABASE=faberjs',
+        'DB_USERNAME=root',
+        'DB_PASSWORD=secret',
+      ],
+      configLines: [
+        `    mysql2: {`,
+        `      client: 'mysql2',`,
+        `      connection: {`,
+        `        host: env('DB_HOST', '127.0.0.1'),`,
+        `        port: env('DB_PORT', 3306),`,
+        `        database: env('DB_DATABASE', 'faberjs'),`,
+        `        user: env('DB_USERNAME', 'root'),`,
+        `        password: env('DB_PASSWORD', ''),`,
+        `      },`,
+        `    },`,
+      ],
+    };
+  }
+
+  // postgres default
+  return {
+    envLines: [
+      'DB_CONNECTION=pg',
+      'DB_HOST=127.0.0.1',
+      'DB_PORT=5432',
+      'DB_DATABASE=faberjs',
+      'DB_USERNAME=postgres',
+      'DB_PASSWORD=',
+    ],
+    exampleLines: [
+      'DB_CONNECTION=pg',
+      'DB_HOST=127.0.0.1',
+      'DB_PORT=5432',
+      'DB_DATABASE=faberjs',
+      'DB_USERNAME=postgres',
+      'DB_PASSWORD=secret',
+    ],
+    configLines: [
+      `    pg: {`,
+      `      client: 'pg',`,
+      `      connection: {`,
+      `        host: env('DB_HOST', '127.0.0.1'),`,
+      `        port: env('DB_PORT', 5432),`,
+      `        database: env('DB_DATABASE', 'faberjs'),`,
+      `        user: env('DB_USERNAME', 'postgres'),`,
+      `        password: env('DB_PASSWORD', ''),`,
+      `      },`,
+      `    },`,
+    ],
+  };
+}
+
+export async function scaffoldProject(opts: ScaffoldOptions): Promise<string[]> {
+  const files = buildFiles(opts);
+  const written: string[] = [];
+
+  for (const [relativePath, content] of Object.entries(files)) {
+    const fullPath = path.join(opts.targetDir, relativePath);
+    const dir = path.dirname(fullPath);
+    await mkdir(dir, { recursive: true });
+    await writeFile(fullPath, content, 'utf8');
+    written.push(relativePath);
+  }
+
+  // Create empty directories
+  for (const dir of [
+    'storage/logs',
+    'storage/cache',
+    'tests/Feature',
+    'tests/Unit',
+    'app/jobs',
+    'app/events',
+    'app/listeners',
+    'app/policies',
+    'app/commands',
+  ]) {
+    await mkdir(path.join(opts.targetDir, dir), { recursive: true });
+  }
+
+  return written;
+}
