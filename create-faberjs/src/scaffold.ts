@@ -286,7 +286,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
       `export default class CreateUsersTable extends Migration {`,
       `  async up(): Promise<void> {`,
       `    await Schema.create('users', (table) => {`,
-      `      table.increments('id');`,
+      `      table.id();`,
       `      table.string('name');`,
       `      table.string('email').unique();`,
       `      table.string('password');`,
