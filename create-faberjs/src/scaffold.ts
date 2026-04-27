@@ -136,9 +136,10 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
 
     'routes/api.ts': [
       `import { Route } from '@faber-js/router';`,
+      `import { Response } from '@faber-js/http';`,
       `import { UserController } from '../app/controllers/UserController.ts';`,
       ``,
-      `Route.get('/health', () => Promise.resolve({ status: 'ok' }));`,
+      `Route.get('/health', () => Promise.resolve(Response.json({ status: 'ok' })));`,
       ``,
       `Route.group({ prefix: '/api/v1' }, () => {`,
       `  Route.get('/users', [UserController, 'index']);`,
