@@ -32,8 +32,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@faber-js/core": "workspace:*",
-    "@faber-js/http": "workspace:*",
-    "@faber-js/orm": "workspace:*"
+    "@faber-js/core": "workspace:^",
+    "@faber-js/http": "workspace:^",
+    "@faber-js/orm": "workspace:^"
   }
 }

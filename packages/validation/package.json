@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/validation",
-  "version": "1.0.4",
+  "version": "1.0.7",
   "description": "FaberJS request validation with fluent rules, FormRequest, and auto-error responses",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -32,11 +32,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@faber-js/core": "workspace:*",
-    "@faber-js/http": "workspace:*"
+    "@faber-js/core": "workspace:^",
+    "@faber-js/http": "workspace:^"
   },
   "devDependencies": {
-    "@faber-js/orm": "workspace:*",
+    "@faber-js/orm": "workspace:^",
     "better-sqlite3": "^9.4.0",
     "@types/better-sqlite3": "^7.6.8",
     "knex": "^3.1.0"

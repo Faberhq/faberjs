@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/queue",
-  "version": "1.0.4",
+  "version": "1.0.7",
   "description": "FaberJS background job dispatching and queue workers backed by BullMQ",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -33,7 +33,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@faber-js/core": "workspace:*",
+    "@faber-js/core": "workspace:^",
     "bullmq": "^5.12.0"
   },
   "devDependencies": {
