@@ -41,7 +41,18 @@ function buildConnectionConfig(): ConnectionConfig {
   };
 }
 
+function registerTsNode(cwd: string): void {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const tsNode = require('ts-node') as { register(opts: Record<string, unknown>): void };
+    tsNode.register({ project: join(cwd, 'tsconfig.json'), transpileOnly: true });
+  } catch {
+    // ts-node not installed — migrations must be pre-compiled .js files
+  }
+}
+
 async function loadMigrations(cwd: string): Promise<MigrationRunner> {
+  registerTsNode(cwd);
   const runner = new MigrationRunner();
   const migrationsDir = join(cwd, 'database', 'migrations');
 

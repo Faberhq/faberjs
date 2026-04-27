@@ -16,6 +16,6 @@ export default defineConfig([
     clean: false,
     sourcemap: false,
     banner: { js: '#!/usr/bin/env node' },
-    external: ['reflect-metadata'],
+    external: ['reflect-metadata', 'ts-node'],
   },
 ]);
