@@ -27,8 +27,8 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
         private: true,
         scripts: {
           dev: 'faber serve',
-          migrate: 'faber db:migrate',
-          'migrate:rollback': 'faber db:rollback',
+          migrate: 'faber db migrate',
+          'migrate:rollback': 'faber db rollback',
         },
         dependencies: {
           '@faber-js/core': '^1.0.4',

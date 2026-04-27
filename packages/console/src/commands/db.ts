@@ -1,7 +1,48 @@
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { MigrationRunner } from '@faber-js/orm';
-import type { Migration } from '@faber-js/orm';
+import { createRequire } from 'node:module';
+import { MigrationRunner, createConnection } from '@faber-js/orm';
+import type { Migration, ConnectionConfig } from '@faber-js/orm';
+
+const req = createRequire(import.meta.url);
+
+function loadDotEnv(cwd: string): void {
+  const envPath = join(cwd, '.env');
+  if (!existsSync(envPath)) return;
+  const lines = readFileSync(envPath, 'utf8').split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq === -1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    const val = trimmed
+      .slice(eq + 1)
+      .trim()
+      .replace(/^["']|["']$/g, '');
+    if (!(key in process.env)) process.env[key] = val;
+  }
+}
+
+function buildConnectionConfig(): ConnectionConfig {
+  const client = (process.env['DB_CONNECTION'] ?? 'better-sqlite3') as ConnectionConfig['client'];
+  if (client === 'sqlite3' || client === 'better-sqlite3') {
+    return {
+      client,
+      connection: { filename: process.env['DB_DATABASE'] ?? './storage/database.sqlite' },
+    };
+  }
+  return {
+    client,
+    connection: {
+      host: process.env['DB_HOST'] ?? '127.0.0.1',
+      port: Number(process.env['DB_PORT'] ?? (client === 'pg' ? 5432 : 3306)),
+      user: process.env['DB_USERNAME'] ?? 'root',
+      password: process.env['DB_PASSWORD'] ?? '',
+      database: process.env['DB_DATABASE'] ?? 'faberjs',
+    },
+  };
+}
 
 async function loadMigrations(cwd: string): Promise<MigrationRunner> {
   const runner = new MigrationRunner();
@@ -16,7 +57,7 @@ async function loadMigrations(cwd: string): Promise<MigrationRunner> {
     .sort();
 
   for (const file of files) {
-    const mod = (await import(join(migrationsDir, file))) as { default?: Migration };
+    const mod = req(join(migrationsDir, file)) as { default?: Migration };
     if (mod.default) {
       runner.register(file.replace(/\.(ts|js)$/, ''), mod.default);
     }
@@ -26,6 +67,8 @@ async function loadMigrations(cwd: string): Promise<MigrationRunner> {
 }
 
 export async function runMigrations(cwd: string): Promise<void> {
+  loadDotEnv(cwd);
+  createConnection(buildConnectionConfig());
   const runner = await loadMigrations(cwd);
   const executed = await runner.run();
   if (executed.length === 0) {
@@ -38,6 +81,8 @@ export async function runMigrations(cwd: string): Promise<void> {
 }
 
 export async function rollbackMigrations(cwd: string): Promise<void> {
+  loadDotEnv(cwd);
+  createConnection(buildConnectionConfig());
   const runner = await loadMigrations(cwd);
   const rolled = await runner.rollback();
   if (rolled.length === 0) {
@@ -50,6 +95,8 @@ export async function rollbackMigrations(cwd: string): Promise<void> {
 }
 
 export async function runSeeders(cwd: string): Promise<void> {
+  loadDotEnv(cwd);
+  createConnection(buildConnectionConfig());
   const seedersDir = join(cwd, 'database', 'seeders');
   if (!existsSync(seedersDir)) {
     process.stdout.write('No seeders directory found.\n');
@@ -59,7 +106,7 @@ export async function runSeeders(cwd: string): Promise<void> {
     .filter((f) => f.endsWith('.ts') || f.endsWith('.js'))
     .sort();
   for (const file of files) {
-    const mod = (await import(join(seedersDir, file))) as { default?: { run(): Promise<void> } };
+    const mod = req(join(seedersDir, file)) as { default?: { run(): Promise<void> } };
     if (mod.default) {
       await mod.default.run();
       process.stdout.write(`\x1b[32mSEEDED\x1b[0m ${file}\n`);
@@ -68,6 +115,8 @@ export async function runSeeders(cwd: string): Promise<void> {
 }
 
 export async function showMigrationStatus(cwd: string): Promise<void> {
+  loadDotEnv(cwd);
+  createConnection(buildConnectionConfig());
   const runner = await loadMigrations(cwd);
   const records = await runner.status();
   if (records.length === 0) {
