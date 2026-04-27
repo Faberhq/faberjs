@@ -1,6 +1,6 @@
-import { Application, Injectable } from '@faberjs/core';
-import { ForbiddenException, Response } from '@faberjs/http';
-import type { AuthUser } from '@faberjs/http';
+import { Application, Injectable } from '@faber-js/core';
+import { ForbiddenException, Response } from '@faber-js/http';
+import type { AuthUser } from '@faber-js/http';
 
 interface GateResolvable {
   allows(ability: string, user: AuthUser | null, model?: unknown): Promise<boolean>;

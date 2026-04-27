@@ -1,8 +1,8 @@
 export const stubs: Record<string, string> = {
-  controller: `import { Injectable } from '@faberjs/core';
-import { Controller } from '@faberjs/router';
-import type { Request } from '@faberjs/http';
-import { Response } from '@faberjs/http';
+  controller: `import { Injectable } from '@faber-js/core';
+import { Controller } from '@faber-js/router';
+import type { Request } from '@faber-js/http';
+import { Response } from '@faber-js/http';
 
 @Injectable()
 export class {{Name}}Controller extends Controller {
@@ -29,7 +29,7 @@ export class {{Name}}Controller extends Controller {
 }
 `,
 
-  service: `import { Injectable, Service } from '@faberjs/core';
+  service: `import { Injectable, Service } from '@faber-js/core';
 
 @Injectable()
 export class {{Name}}Service extends Service {
@@ -37,7 +37,7 @@ export class {{Name}}Service extends Service {
 }
 `,
 
-  model: `import { Model } from '@faberjs/orm';
+  model: `import { Model } from '@faber-js/orm';
 
 export class {{Name}} extends Model {
   static override table = '{{table}}';
@@ -45,7 +45,7 @@ export class {{Name}} extends Model {
 }
 `,
 
-  migration: `import { Migration, Schema } from '@faberjs/orm';
+  migration: `import { Migration, Schema } from '@faber-js/orm';
 
 export default class {{ClassName}} extends Migration {
   async up(): Promise<void> {
@@ -85,9 +85,9 @@ export default class {{ClassName}} extends Migration {
 }
 `,
 
-  middleware: `import type { Middleware, NextFunction } from '@faberjs/http';
-import type { Request } from '@faberjs/http';
-import { Response } from '@faberjs/http';
+  middleware: `import type { Middleware, NextFunction } from '@faber-js/http';
+import type { Request } from '@faber-js/http';
+import { Response } from '@faber-js/http';
 
 export class {{Name}}Middleware implements Middleware {
   async handle(request: Request, next: NextFunction): Promise<Response> {
@@ -96,7 +96,7 @@ export class {{Name}}Middleware implements Middleware {
 }
 `,
 
-  command: `import { Command } from '@faberjs/console';
+  command: `import { Command } from '@faber-js/console';
 
 export class {{Name}}Command extends Command {
   readonly signature = '{{name}}';
@@ -108,7 +108,7 @@ export class {{Name}}Command extends Command {
 }
 `,
 
-  provider: `import { ServiceProvider } from '@faberjs/core';
+  provider: `import { ServiceProvider } from '@faber-js/core';
 
 export class {{Name}}ServiceProvider extends ServiceProvider {
   register(): void {
@@ -121,8 +121,8 @@ export class {{Name}}ServiceProvider extends ServiceProvider {
 }
 `,
 
-  agent: `import { Injectable } from '@faberjs/core';
-import { Agent, Tool } from '@faberjs/ai';
+  agent: `import { Injectable } from '@faber-js/core';
+import { Agent, Tool } from '@faber-js/ai';
 
 @Injectable()
 export class {{Name}}Agent extends Agent {

@@ -1,4 +1,4 @@
-import { ServiceProvider } from '@faberjs/core';
+import { ServiceProvider } from '@faber-js/core';
 import type { ListenMap } from './types';
 import { EventDispatcher } from './event-dispatcher';
 

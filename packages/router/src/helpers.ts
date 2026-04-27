@@ -1,5 +1,5 @@
-import { Application } from '@faberjs/core';
-import type { RouterContract } from '@faberjs/http';
+import { Application } from '@faber-js/core';
+import type { RouterContract } from '@faber-js/http';
 
 export class RouteNotFoundException extends Error {
   constructor(name: string) {

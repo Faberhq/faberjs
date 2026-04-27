@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { AuthUser } from '@faberjs/http';
+import type { AuthUser } from '@faber-js/http';
 import { JwtGuard } from './jwt-guard';
 import type { UserProviderContract } from './types';
 

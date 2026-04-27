@@ -1,4 +1,4 @@
-import type { HttpKernel } from '@faberjs/http';
+import type { HttpKernel } from '@faber-js/http';
 import { TestResponse } from './test-response';
 
 export class TestClient {

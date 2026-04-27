@@ -1,4 +1,4 @@
-import { Application } from '@faberjs/core';
+import { Application } from '@faber-js/core';
 import type { EventDispatcherContract, EventPayload } from './types';
 
 export async function event(payload: EventPayload): Promise<void> {

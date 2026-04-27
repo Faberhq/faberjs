@@ -2,12 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventDispatcher } from './event-dispatcher';
 import type { EventPayload, ListenerContract } from './types';
 
-// Mock @faberjs/queue dispatch so queued listeners don't need Redis
-vi.mock('@faberjs/queue', () => ({
+// Mock @faber-js/queue dispatch so queued listeners don't need Redis
+vi.mock('@faber-js/queue', () => ({
   dispatch: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { dispatch as mockDispatch } from '@faberjs/queue';
+import { dispatch as mockDispatch } from '@faber-js/queue';
 
 class SyncListener implements ListenerContract {
   static calls: EventPayload[] = [];

@@ -1,6 +1,6 @@
-import { Application } from '@faberjs/core';
-import type { Constructor } from '@faberjs/core';
-import type { ControllerAction } from '@faberjs/http';
+import { Application } from '@faber-js/core';
+import type { Constructor } from '@faber-js/core';
+import type { ControllerAction } from '@faber-js/http';
 import type { RouteBuilder } from './route-builder';
 import type { Router } from './router';
 import type { RouteGroupOptions } from './types';

@@ -1,5 +1,5 @@
 {
-  "name": "@faberjs/events",
+  "name": "@faber-js/events",
   "version": "0.0.1",
   "description": "FaberJS application-level event and listener system with auto-discovery",
   "main": "dist/index.js",
@@ -32,7 +32,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@faberjs/core": "workspace:*",
-    "@faberjs/queue": "workspace:*"
+    "@faber-js/core": "workspace:*",
+    "@faber-js/queue": "workspace:*"
   }
 }

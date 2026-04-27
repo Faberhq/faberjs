@@ -1,5 +1,5 @@
 {
-  "name": "@faberjs/config",
+  "name": "@faber-js/config",
   "version": "0.0.1",
   "description": "FaberJS typed configuration loading from .env and config files",
   "main": "dist/index.js",

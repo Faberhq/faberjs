@@ -1,5 +1,5 @@
 {
-  "name": "@faberjs/orm",
+  "name": "@faber-js/orm",
   "version": "0.0.1",
   "description": "FaberJS Eloquent-like ActiveRecord ORM with query builder, relationships, and migrations",
   "main": "dist/index.js",
@@ -33,7 +33,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@faberjs/core": "workspace:*",
+    "@faber-js/core": "workspace:*",
     "knex": "^3.1.0",
     "reflect-metadata": "^0.2.0"
   },

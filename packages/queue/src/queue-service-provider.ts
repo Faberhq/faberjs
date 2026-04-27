@@ -1,4 +1,4 @@
-import { ServiceProvider } from '@faberjs/core';
+import { ServiceProvider } from '@faber-js/core';
 import { QueueService } from './queue-service';
 import type { QueueConfig } from './types';
 

@@ -1,4 +1,4 @@
-import type { AuthUser } from '@faberjs/http';
+import type { AuthUser } from '@faber-js/http';
 
 export interface AuthConfig {
   readonly secret: string;

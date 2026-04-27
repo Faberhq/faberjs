@@ -1,5 +1,5 @@
-import type { Request } from '@faberjs/http';
-import { ForbiddenException, ValidationException } from '@faberjs/http';
+import type { Request } from '@faber-js/http';
+import { ForbiddenException, ValidationException } from '@faber-js/http';
 import type { AuthUser, InputData, RuleValue, ValidationRules } from './types';
 import { Validator } from './validator';
 

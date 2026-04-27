@@ -1,5 +1,5 @@
 {
-  "name": "@faberjs/router",
+  "name": "@faber-js/router",
   "version": "0.0.1",
   "description": "FaberJS HTTP routing engine with resource routes, route groups, and route model binding",
   "main": "dist/index.js",
@@ -32,7 +32,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@faberjs/core": "workspace:*",
-    "@faberjs/http": "workspace:*"
+    "@faber-js/core": "workspace:*",
+    "@faber-js/http": "workspace:*"
   }
 }

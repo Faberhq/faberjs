@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { Response } from '@faberjs/http';
-import type { Request } from '@faberjs/http';
+import { Response } from '@faber-js/http';
+import type { Request } from '@faber-js/http';
 import { Router } from './router';
 
 class FakeController {

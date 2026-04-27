@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose';
-import type { AuthUser } from '@faberjs/http';
+import type { AuthUser } from '@faber-js/http';
 import type { AuthConfig, GuardContract, JwtPayload, UserProviderContract } from './types';
 
 export class JwtGuard implements GuardContract {

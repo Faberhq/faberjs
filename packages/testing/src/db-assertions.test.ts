@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createConnection, destroyConnection, getConnection, Schema } from '@faberjs/orm';
+import { createConnection, destroyConnection, getConnection, Schema } from '@faber-js/orm';
 import { assertDatabaseCount, assertDatabaseHas, assertDatabaseMissing } from './db-assertions';
 
 beforeAll(async () => {

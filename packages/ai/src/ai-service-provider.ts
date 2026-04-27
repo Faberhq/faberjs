@@ -1,4 +1,4 @@
-import { ServiceProvider } from '@faberjs/core';
+import { ServiceProvider } from '@faber-js/core';
 
 export class AiServiceProvider extends ServiceProvider {
   register(): void {

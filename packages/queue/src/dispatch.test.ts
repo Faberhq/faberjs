@@ -1,4 +1,4 @@
-import { Application } from '@faberjs/core';
+import { Application } from '@faber-js/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { dispatch } from './dispatch';
 import type { JobContract, QueueContract } from './types';

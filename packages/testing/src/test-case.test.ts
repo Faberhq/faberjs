@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, it } from 'vitest';
-import { Application } from '@faberjs/core';
-import { HttpKernel, Response } from '@faberjs/http';
-import type { RouteDefinition, RouterContract } from '@faberjs/http';
+import { Application } from '@faber-js/core';
+import { HttpKernel, Response } from '@faber-js/http';
+import type { RouteDefinition, RouterContract } from '@faber-js/http';
 import { TestCase } from './test-case';
 
 class StubRouter implements RouterContract {

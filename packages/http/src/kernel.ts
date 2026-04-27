@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import type { FastifyInstance, FastifyRequest as RawFastifyRequest, FastifyReply } from 'fastify';
-import type { ApplicationContract, Constructor } from '@faberjs/core';
+import type { ApplicationContract, Constructor } from '@faber-js/core';
 import { Request } from './request';
 import type { Response } from './response';
 import { Pipeline } from './pipeline';

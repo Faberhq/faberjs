@@ -1,4 +1,4 @@
-import { dispatch } from '@faberjs/queue';
+import { dispatch } from '@faber-js/queue';
 import type {
   EventDispatcherContract,
   EventPayload,

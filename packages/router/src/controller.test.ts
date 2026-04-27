@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Application } from '@faberjs/core';
-import { ForbiddenException } from '@faberjs/http';
-import type { Response } from '@faberjs/http';
-import type { AuthUser } from '@faberjs/http';
+import { Application } from '@faber-js/core';
+import { ForbiddenException } from '@faber-js/http';
+import type { Response } from '@faber-js/http';
+import type { AuthUser } from '@faber-js/http';
 import { Controller } from './controller';
 
 class TestController extends Controller {

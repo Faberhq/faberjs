@@ -1,4 +1,4 @@
-import { ServiceProvider } from '@faberjs/core';
+import { ServiceProvider } from '@faber-js/core';
 import { Gate } from './gate';
 import { JwtGuard } from './jwt-guard';
 import type { AuthConfig, UserProviderContract } from './types';

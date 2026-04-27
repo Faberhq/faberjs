@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { existsSync, readdirSync } from 'node:fs';
-import type { RouteDefinition } from '@faberjs/http';
+import type { RouteDefinition } from '@faber-js/http';
 
 export async function listRoutes(cwd: string): Promise<void> {
   const routesDir = join(cwd, 'routes');
@@ -10,8 +10,8 @@ export async function listRoutes(cwd: string): Promise<void> {
   }
 
   try {
-    const { Application } = await import('@faberjs/core');
-    const { RouterServiceProvider } = await import('@faberjs/router');
+    const { Application } = await import('@faber-js/core');
+    const { RouterServiceProvider } = await import('@faber-js/router');
 
     const app = new Application();
     app.register(new RouterServiceProvider(app));

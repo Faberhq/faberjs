@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import Anthropic from '@anthropic-ai/sdk';
-import { Application, Injectable } from '@faberjs/core';
-import type { ApplicationContract } from '@faberjs/core';
+import { Application, Injectable } from '@faber-js/core';
+import type { ApplicationContract } from '@faber-js/core';
 import { getToolMeta } from './tool';
 import { InMemoryConversationMemory } from './memory';
 import type { ConversationMemory, MemoryMessage } from './types';

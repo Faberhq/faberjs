@@ -6,5 +6,5 @@ export default defineConfig({
   dts: true,
   clean: true,
   sourcemap: true,
-  external: ['reflect-metadata', '@faberjs/core', '@faberjs/http'],
+  external: ['reflect-metadata', '@faber-js/core', '@faber-js/http'],
 });

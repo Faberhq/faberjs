@@ -1,8 +1,8 @@
-import { Application } from '@faberjs/core';
+import { Application } from '@faber-js/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Router } from './router';
 import { RouteNotFoundException, route } from './helpers';
-import { Response } from '@faberjs/http';
+import { Response } from '@faber-js/http';
 
 describe('route()', () => {
   let app: Application;

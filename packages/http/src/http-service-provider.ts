@@ -1,4 +1,4 @@
-import { ServiceProvider } from '@faberjs/core';
+import { ServiceProvider } from '@faber-js/core';
 import { HttpKernel } from './kernel';
 
 export class HttpServiceProvider extends ServiceProvider {

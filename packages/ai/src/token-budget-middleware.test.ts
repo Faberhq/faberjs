@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TokenBudgetMiddleware } from './token-budget-middleware';
-import { Request } from '@faberjs/http';
-import { Response } from '@faberjs/http';
+import { Request } from '@faber-js/http';
+import { Response } from '@faber-js/http';
 
 function makeRequest(): Request {
   return new Request({

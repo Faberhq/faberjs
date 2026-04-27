@@ -1,5 +1,5 @@
 {
-  "name": "@faberjs/ai",
+  "name": "@faber-js/ai",
   "version": "0.0.1",
   "description": "FaberJS AI-native agent scaffolding — Agent base, @Tool decorator, streaming, memory",
   "main": "dist/index.js",
@@ -35,8 +35,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
-    "@faberjs/core": "workspace:*",
-    "@faberjs/http": "workspace:*",
+    "@faber-js/core": "workspace:*",
+    "@faber-js/http": "workspace:*",
     "reflect-metadata": "^0.2.0"
   }
 }

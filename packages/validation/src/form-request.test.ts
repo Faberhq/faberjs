@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ForbiddenException, Request, ValidationException } from '@faberjs/http';
+import { ForbiddenException, Request, ValidationException } from '@faber-js/http';
 import { FormRequest } from './form-request';
 import type { InputData, ValidationRules } from './types';
 

@@ -1,6 +1,6 @@
-import { Application } from '@faberjs/core';
-import { UnauthorizedException } from '@faberjs/http';
-import type { Middleware, NextFunction, Request, Response } from '@faberjs/http';
+import { Application } from '@faber-js/core';
+import { UnauthorizedException } from '@faber-js/http';
+import type { Middleware, NextFunction, Request, Response } from '@faber-js/http';
 import type { GuardContract } from './types';
 
 export class AuthMiddleware implements Middleware {

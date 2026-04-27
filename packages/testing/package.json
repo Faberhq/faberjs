@@ -1,5 +1,5 @@
 {
-  "name": "@faberjs/testing",
+  "name": "@faber-js/testing",
   "version": "0.0.1",
   "description": "FaberJS test helpers, HTTP test client, and database assertions",
   "main": "dist/index.js",
@@ -32,8 +32,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@faberjs/core": "workspace:*",
-    "@faberjs/http": "workspace:*",
-    "@faberjs/orm": "workspace:*"
+    "@faber-js/core": "workspace:*",
+    "@faber-js/http": "workspace:*",
+    "@faber-js/orm": "workspace:*"
   }
 }

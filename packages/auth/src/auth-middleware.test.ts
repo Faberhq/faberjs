@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Application } from '@faberjs/core';
-import { Request, UnauthorizedException } from '@faberjs/http';
-import type { AuthUser } from '@faberjs/http';
+import { Application } from '@faber-js/core';
+import { Request, UnauthorizedException } from '@faber-js/http';
+import type { AuthUser } from '@faber-js/http';
 import { AuthMiddleware } from './auth-middleware';
 import type { GuardContract } from './types';
 

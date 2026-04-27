@@ -1,4 +1,4 @@
-import { Application } from '@faberjs/core';
+import { Application } from '@faber-js/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { HttpException, UnauthorizedException } from './exceptions';
 import { HttpKernel } from './kernel';

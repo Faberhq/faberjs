@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { Application } from '@faberjs/core';
+import { Application } from '@faber-js/core';
 import { Tool } from './tool';
 import { Agent } from './agent';
 

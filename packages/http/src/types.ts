@@ -1,4 +1,4 @@
-import type { Constructor } from '@faberjs/core';
+import type { Constructor } from '@faber-js/core';
 import type { Request } from './request';
 import type { Response } from './response';
 

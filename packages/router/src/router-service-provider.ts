@@ -1,4 +1,4 @@
-import { ServiceProvider } from '@faberjs/core';
+import { ServiceProvider } from '@faber-js/core';
 import { Router } from './router';
 
 export class RouterServiceProvider extends ServiceProvider {

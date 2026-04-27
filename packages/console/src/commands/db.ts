@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { MigrationRunner } from '@faberjs/orm';
-import type { Migration } from '@faberjs/orm';
+import { MigrationRunner } from '@faber-js/orm';
+import type { Migration } from '@faber-js/orm';
 
 async function loadMigrations(cwd: string): Promise<MigrationRunner> {
   const runner = new MigrationRunner();

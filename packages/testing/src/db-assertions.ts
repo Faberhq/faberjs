@@ -1,4 +1,4 @@
-import { getConnection } from '@faberjs/orm';
+import { getConnection } from '@faber-js/orm';
 
 type SqlValue = string | number | boolean | null;
 

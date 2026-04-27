@@ -1,5 +1,5 @@
-import type { Constructor } from '@faberjs/core';
-import type { ControllerAction, HttpMethod, RouteDefinition, RouterContract } from '@faberjs/http';
+import type { Constructor } from '@faber-js/core';
+import type { ControllerAction, HttpMethod, RouteDefinition, RouterContract } from '@faber-js/http';
 import { RouteBuilder, makeRouteDefinition } from './route-builder';
 import type { ResolvedGroup, RouteGroupOptions } from './types';
 

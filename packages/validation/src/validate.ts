@@ -1,4 +1,4 @@
-import { ValidationException } from '@faberjs/http';
+import { ValidationException } from '@faber-js/http';
 import type { InputData, ValidationRules } from './types';
 import { Validator } from './validator';
 

@@ -1,4 +1,4 @@
-import type { AuthUser } from '@faberjs/http';
+import type { AuthUser } from '@faber-js/http';
 import type { PolicyContract } from './types';
 
 export abstract class Policy implements PolicyContract {

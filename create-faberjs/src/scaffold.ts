@@ -14,7 +14,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
   const { projectName, dbDriver, includeAuth } = opts;
 
   const dbConfig = buildDbConfig(dbDriver);
-  const authImports = includeAuth ? `\nimport { AuthServiceProvider } from '@faberjs/auth';` : '';
+  const authImports = includeAuth ? `\nimport { AuthServiceProvider } from '@faber-js/auth';` : '';
   const authProvider = includeAuth ? `\n  app.register(new AuthServiceProvider(app));` : '';
 
   return {
@@ -30,16 +30,16 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
           'migrate:rollback': 'faber db:rollback',
         },
         dependencies: {
-          '@faberjs/core': '0.0.1',
-          '@faberjs/config': '0.0.1',
-          '@faberjs/http': '0.0.1',
-          '@faberjs/router': '0.0.1',
-          '@faberjs/orm': '0.0.1',
-          '@faberjs/queue': '0.0.1',
-          '@faberjs/events': '0.0.1',
-          '@faberjs/validation': '0.0.1',
-          '@faberjs/console': '0.0.1',
-          ...(includeAuth ? { '@faberjs/auth': '0.0.1' } : {}),
+          '@faber-js/core': '0.0.1',
+          '@faber-js/config': '0.0.1',
+          '@faber-js/http': '0.0.1',
+          '@faber-js/router': '0.0.1',
+          '@faber-js/orm': '0.0.1',
+          '@faber-js/queue': '0.0.1',
+          '@faber-js/events': '0.0.1',
+          '@faber-js/validation': '0.0.1',
+          '@faber-js/console': '0.0.1',
+          ...(includeAuth ? { '@faber-js/auth': '0.0.1' } : {}),
           'reflect-metadata': '^0.2.2',
         },
         devDependencies: {
@@ -107,10 +107,10 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
 
     'bootstrap/app.ts': [
       `import 'reflect-metadata';`,
-      `import { Application } from '@faberjs/core';`,
-      `import { HttpKernel } from '@faberjs/http';`,
-      `import { RouterServiceProvider } from '@faberjs/router';`,
-      `import { OrmServiceProvider } from '@faberjs/orm';`,
+      `import { Application } from '@faber-js/core';`,
+      `import { HttpKernel } from '@faber-js/http';`,
+      `import { RouterServiceProvider } from '@faber-js/router';`,
+      `import { OrmServiceProvider } from '@faber-js/orm';`,
       authImports,
       ``,
       `const app = new Application();`,
@@ -132,7 +132,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
     ].join('\n'),
 
     'routes/api.ts': [
-      `import { Route } from '@faberjs/router';`,
+      `import { Route } from '@faber-js/router';`,
       `import { UserController } from '../app/controllers/UserController.ts';`,
       ``,
       `Route.get('/health', () => Promise.resolve({ status: 'ok' }));`,
@@ -147,10 +147,10 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
     ].join('\n'),
 
     'app/controllers/UserController.ts': [
-      `import { Injectable } from '@faberjs/core';`,
-      `import { Controller } from '@faberjs/router';`,
-      `import type { Request } from '@faberjs/http';`,
-      `import { Response } from '@faberjs/http';`,
+      `import { Injectable } from '@faber-js/core';`,
+      `import { Controller } from '@faber-js/router';`,
+      `import type { Request } from '@faber-js/http';`,
+      `import { Response } from '@faber-js/http';`,
       `import { UserService } from '../services/UserService.ts';`,
       ``,
       `@Injectable()`,
@@ -187,7 +187,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
     ].join('\n'),
 
     'app/services/UserService.ts': [
-      `import { Injectable, Service } from '@faberjs/core';`,
+      `import { Injectable, Service } from '@faber-js/core';`,
       `import { User } from '../models/User.ts';`,
       ``,
       `@Injectable()`,
@@ -219,7 +219,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
     ].join('\n'),
 
     'app/models/User.ts': [
-      `import { Model } from '@faberjs/orm';`,
+      `import { Model } from '@faber-js/orm';`,
       ``,
       `export class User extends Model {`,
       `  static table = 'users';`,
@@ -229,7 +229,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
     ].join('\n'),
 
     'app/providers/AppServiceProvider.ts': [
-      `import { ServiceProvider } from '@faberjs/core';`,
+      `import { ServiceProvider } from '@faber-js/core';`,
       ``,
       `export class AppServiceProvider extends ServiceProvider {`,
       `  register(): void {`,
@@ -243,7 +243,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
     ].join('\n'),
 
     'database/migrations/0001_create_users_table.ts': [
-      `import { Migration, Schema } from '@faberjs/orm';`,
+      `import { Migration, Schema } from '@faber-js/orm';`,
       ``,
       `export default class CreateUsersTable extends Migration {`,
       `  async up(): Promise<void> {`,
@@ -263,7 +263,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
     ].join('\n'),
 
     'config/app.ts': [
-      `import { env } from '@faberjs/config';`,
+      `import { env } from '@faber-js/config';`,
       ``,
       `export default {`,
       `  name: env('APP_NAME', '${projectName}'),`,
@@ -272,7 +272,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
     ].join('\n'),
 
     'config/database.ts': [
-      `import { env } from '@faberjs/config';`,
+      `import { env } from '@faber-js/config';`,
       ``,
       `export default {`,
       `  default: env('DB_CONNECTION', '${dbDriver}'),`,

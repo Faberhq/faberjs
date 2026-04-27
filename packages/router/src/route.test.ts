@@ -1,6 +1,6 @@
-import { Application } from '@faberjs/core';
-import type { Request } from '@faberjs/http';
-import { Response } from '@faberjs/http';
+import { Application } from '@faber-js/core';
+import type { Request } from '@faber-js/http';
+import { Response } from '@faber-js/http';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Route } from './route';
 import type { Router } from './router';

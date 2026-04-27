@@ -1,5 +1,5 @@
-import { TooManyRequestsException } from '@faberjs/http';
-import type { Middleware, NextFunction, Request, Response } from '@faberjs/http';
+import { TooManyRequestsException } from '@faber-js/http';
+import type { Middleware, NextFunction, Request, Response } from '@faber-js/http';
 import type { TokenBudgetConfig } from './types';
 
 export class TokenBudgetMiddleware implements Middleware {

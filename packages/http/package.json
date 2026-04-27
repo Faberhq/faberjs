@@ -1,5 +1,5 @@
 {
-  "name": "@faberjs/http",
+  "name": "@faber-js/http",
   "version": "0.0.1",
   "description": "FaberJS HTTP kernel, Request/Response abstraction, and middleware pipeline",
   "main": "dist/index.js",
@@ -33,7 +33,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@faberjs/core": "workspace:*",
+    "@faber-js/core": "workspace:*",
     "fastify": "^5.8.3"
   }
 }

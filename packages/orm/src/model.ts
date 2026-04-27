@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Injectable } from '@faberjs/core';
+import { Injectable } from '@faber-js/core';
 import type {
   ColumnValue,
   ModelStatics,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { AuthUser } from '@faberjs/http';
+import type { AuthUser } from '@faber-js/http';
 import { Gate } from './gate';
 import { Policy } from './policy';
 

@@ -1,5 +1,5 @@
-import type { HttpKernel } from '@faberjs/http';
-import type { MigrationRunner } from '@faberjs/orm';
+import type { HttpKernel } from '@faber-js/http';
+import type { MigrationRunner } from '@faber-js/orm';
 import { assertDatabaseHas, assertDatabaseMissing } from './db-assertions';
 import type { TestClient } from './test-client';
 import { createTestApp } from './test-client';

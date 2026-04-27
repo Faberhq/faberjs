@@ -1,5 +1,5 @@
 {
-  "name": "@faberjs/auth",
+  "name": "@faber-js/auth",
   "version": "0.0.1",
   "description": "FaberJS JWT-based authentication guards and authorization policies",
   "main": "dist/index.js",
@@ -33,8 +33,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@faberjs/core": "workspace:*",
-    "@faberjs/http": "workspace:*",
+    "@faber-js/core": "workspace:*",
+    "@faber-js/http": "workspace:*",
     "jose": "^5.9.6"
   }
 }

@@ -1,5 +1,5 @@
-import { Application } from '@faberjs/core';
-import type { AuthUser } from '@faberjs/http';
+import { Application } from '@faber-js/core';
+import type { AuthUser } from '@faber-js/http';
 import type { GuardContract } from './types';
 
 function resolveGuard(): GuardContract {

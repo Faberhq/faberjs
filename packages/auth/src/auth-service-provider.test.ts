@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Application } from '@faberjs/core';
-import type { AuthUser } from '@faberjs/http';
+import { Application } from '@faber-js/core';
+import type { AuthUser } from '@faber-js/http';
 import { AuthServiceProvider } from './auth-service-provider';
 import { Gate } from './gate';
 import { JwtGuard } from './jwt-guard';

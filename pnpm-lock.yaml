@@ -71,10 +71,10 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.32.1
         version: 0.32.1
-      '@faberjs/core':
+      '@faber-js/core':
         specifier: workspace:*
         version: link:../core
-      '@faberjs/http':
+      '@faber-js/http':
         specifier: workspace:*
         version: link:../http
       reflect-metadata:
@@ -83,10 +83,10 @@ importers:
 
   packages/auth:
     dependencies:
-      '@faberjs/core':
+      '@faber-js/core':
         specifier: workspace:*
         version: link:../core
-      '@faberjs/http':
+      '@faber-js/http':
         specifier: workspace:*
         version: link:../http
       jose:
@@ -103,16 +103,16 @@ importers:
 
   packages/console:
     dependencies:
-      '@faberjs/core':
+      '@faber-js/core':
         specifier: workspace:*
         version: link:../core
-      '@faberjs/http':
+      '@faber-js/http':
         specifier: workspace:*
         version: link:../http
-      '@faberjs/orm':
+      '@faber-js/orm':
         specifier: workspace:*
         version: link:../orm
-      '@faberjs/router':
+      '@faber-js/router':
         specifier: workspace:*
         version: link:../router
       commander:
@@ -127,16 +127,16 @@ importers:
 
   packages/events:
     dependencies:
-      '@faberjs/core':
+      '@faber-js/core':
         specifier: workspace:*
         version: link:../core
-      '@faberjs/queue':
+      '@faber-js/queue':
         specifier: workspace:*
         version: link:../queue
 
   packages/http:
     dependencies:
-      '@faberjs/core':
+      '@faber-js/core':
         specifier: workspace:*
         version: link:../core
       fastify:
@@ -145,7 +145,7 @@ importers:
 
   packages/orm:
     dependencies:
-      '@faberjs/core':
+      '@faber-js/core':
         specifier: workspace:*
         version: link:../core
       knex:
@@ -164,7 +164,7 @@ importers:
 
   packages/queue:
     dependencies:
-      '@faberjs/core':
+      '@faber-js/core':
         specifier: workspace:*
         version: link:../core
       bullmq:
@@ -180,35 +180,35 @@ importers:
 
   packages/router:
     dependencies:
-      '@faberjs/core':
+      '@faber-js/core':
         specifier: workspace:*
         version: link:../core
-      '@faberjs/http':
+      '@faber-js/http':
         specifier: workspace:*
         version: link:../http
 
   packages/testing:
     dependencies:
-      '@faberjs/core':
+      '@faber-js/core':
         specifier: workspace:*
         version: link:../core
-      '@faberjs/http':
+      '@faber-js/http':
         specifier: workspace:*
         version: link:../http
-      '@faberjs/orm':
+      '@faber-js/orm':
         specifier: workspace:*
         version: link:../orm
 
   packages/validation:
     dependencies:
-      '@faberjs/core':
+      '@faber-js/core':
         specifier: workspace:*
         version: link:../core
-      '@faberjs/http':
+      '@faber-js/http':
         specifier: workspace:*
         version: link:../http
     devDependencies:
-      '@faberjs/orm':
+      '@faber-js/orm':
         specifier: workspace:*
         version: link:../orm
       '@types/better-sqlite3':

@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Application } from '@faberjs/core';
+import { Application } from '@faber-js/core';
 import { EventServiceProvider } from './event-service-provider';
 import type { EventDispatcherContract, EventPayload, ListenerContract, ListenMap } from './types';
 
-vi.mock('@faberjs/queue', () => ({
+vi.mock('@faber-js/queue', () => ({
   dispatch: vi.fn().mockResolvedValue(undefined),
 }));
 

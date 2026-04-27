@@ -1,4 +1,4 @@
-import type { ControllerAction, HttpMethod, RouteDefinition } from '@faberjs/http';
+import type { ControllerAction, HttpMethod, RouteDefinition } from '@faber-js/http';
 
 export class RouteBuilder {
   readonly #definition: RouteDefinition;
