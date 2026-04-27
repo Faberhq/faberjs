@@ -40,7 +40,7 @@ await scaffoldProject({
   projectName: 'test-app',
   targetDir: APP_DIR,
   dbDriver: driver,
-  includeAuth: false,
+  includeAuth: process.argv[3] === '--auth',
 });
 
 console.log('\n\x1b[32m✓ Scaffolded\x1b[0m');

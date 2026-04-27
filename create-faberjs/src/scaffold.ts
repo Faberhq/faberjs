@@ -14,8 +14,10 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
   const { projectName, dbDriver, includeAuth } = opts;
 
   const dbConfig = buildDbConfig(dbDriver);
-  const authImports = includeAuth ? `\nimport { AuthServiceProvider } from '@faber-js/auth';` : '';
-  const authProvider = includeAuth ? `\n  app.register(new AuthServiceProvider(app));` : '';
+  const authImports = includeAuth
+    ? `\nimport { AuthServiceProvider } from '../app/providers/AuthServiceProvider';`
+    : '';
+  const authProvider = includeAuth ? `  app.register(new AuthServiceProvider(app));` : '';
 
   return {
     'package.json': JSON.stringify(
@@ -119,7 +121,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
       `  app.register(new HttpServiceProvider(app));`,
       `  app.register(new RouterServiceProvider(app));`,
       `  app.register(new OrmServiceProvider(app));`,
-      authProvider.replace(/\n {2}/g, '\n    '),
+      ...(authProvider ? [authProvider] : []),
       ``,
       `  await app.boot();`,
       ``,
@@ -231,6 +233,38 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
       `  static hidden = ['password'];`,
       `}`,
     ].join('\n'),
+
+    ...(includeAuth
+      ? {
+          'app/providers/AuthServiceProvider.ts': [
+            `import { AuthServiceProvider as BaseAuthServiceProvider } from '@faber-js/auth';`,
+            `import type { AuthConfig, UserProviderContract } from '@faber-js/auth';`,
+            `import type { AuthUser } from '@faber-js/http';`,
+            ``,
+            `export class AuthServiceProvider extends BaseAuthServiceProvider {`,
+            `  protected authConfig(): AuthConfig {`,
+            `    return {`,
+            `      secret: process.env['JWT_SECRET'] ?? 'change-me',`,
+            `      expiresIn: '7d',`,
+            `    };`,
+            `  }`,
+            ``,
+            `  protected userProvider(): UserProviderContract {`,
+            `    return {`,
+            `      async findByCredentials(_credentials: Record<string, unknown>): Promise<AuthUser | null> {`,
+            `        // TODO: look up user by email/password`,
+            `        return null;`,
+            `      },`,
+            `      async findById(_id: string | number): Promise<AuthUser | null> {`,
+            `        // TODO: look up user by id`,
+            `        return null;`,
+            `      },`,
+            `    };`,
+            `  }`,
+            `}`,
+          ].join('\n'),
+        }
+      : {}),
 
     'app/providers/AppServiceProvider.ts': [
       `import { ServiceProvider } from '@faber-js/core';`,

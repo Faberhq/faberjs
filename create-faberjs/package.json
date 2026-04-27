@@ -1,11 +1,11 @@
 {
   "name": "create-faberjs",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Scaffold a new FaberJS project — npm create faberjs@latest",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "create-faberjs": "./dist/index.js"
+    "create-faberjs": "dist/index.js"
   },
   "files": [
     "dist"
