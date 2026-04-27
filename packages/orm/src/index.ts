@@ -1,4 +1,5 @@
 export { createConnection, getConnection, destroyConnection } from './connection';
+export { OrmServiceProvider } from './orm-service-provider';
 export { Model } from './model';
 export { Schema } from './schema';
 export { Migration, MigrationRunner } from './migration';

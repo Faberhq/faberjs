@@ -108,6 +108,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
     'bootstrap/app.ts': [
       `import 'reflect-metadata';`,
       `import { Application } from '@faber-js/core';`,
+      `import { HttpServiceProvider } from '@faber-js/http';`,
       `import { HttpKernel } from '@faber-js/http';`,
       `import { RouterServiceProvider } from '@faber-js/router';`,
       `import { OrmServiceProvider } from '@faber-js/orm';`,
@@ -115,6 +116,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
       ``,
       `const app = new Application();`,
       ``,
+      `app.register(new HttpServiceProvider(app));`,
       `app.register(new RouterServiceProvider(app));`,
       `app.register(new OrmServiceProvider(app));`,
       authProvider,
