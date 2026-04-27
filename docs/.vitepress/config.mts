@@ -5,8 +5,11 @@ export default defineConfig({
   description: 'A Laravel-inspired backend framework for Node.js and TypeScript.',
   lang: 'en-US',
   cleanUrls: true,
+  appearance: 'dark',
 
-  head: [['link', { rel: 'icon', href: '/favicon.ico' }]],
+  head: [
+    ['link', { rel: 'icon', href: '/logo.svg', type: 'image/svg+xml' }],
+  ],
 
   themeConfig: {
     logo: '/logo.svg',

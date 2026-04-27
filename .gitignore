@@ -9,3 +9,5 @@ coverage
 *.log
 .claude
 CLAUDE.md
+/branding
+/docs
