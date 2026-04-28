@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/config",
-  "version": "1.0.19",
+  "version": "1.0.21",
   "description": "FaberJS typed configuration loading from .env and config files",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
