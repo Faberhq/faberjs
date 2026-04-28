@@ -9,6 +9,8 @@ export interface ScaffoldOptions {
   readonly agents?: ReadonlyArray<'claude' | 'cursor' | 'copilot' | 'windsurf'>;
 }
 
+export type StepCallback = (label: string, done: boolean) => void;
+
 type FileMap = Record<string, string>;
 
 function buildFiles(opts: ScaffoldOptions): FileMap {
@@ -1296,19 +1298,70 @@ await user.fill(req.all());         // ❌
 `;
 }
 
-export async function scaffoldProject(opts: ScaffoldOptions): Promise<string[]> {
+export async function scaffoldProject(
+  opts: ScaffoldOptions,
+  onStep?: StepCallback,
+): Promise<string[]> {
   const files = buildFiles(opts);
   const written: string[] = [];
+  const pending = new Map(Object.entries(files));
 
-  for (const [relativePath, content] of Object.entries(files)) {
-    const fullPath = path.join(opts.targetDir, relativePath);
-    const dir = path.dirname(fullPath);
-    await mkdir(dir, { recursive: true });
-    await writeFile(fullPath, content, 'utf8');
-    written.push(relativePath);
+  async function writeGroup(label: string, keys: string[]): Promise<void> {
+    onStep?.(label, false);
+    for (const key of keys) {
+      const content = pending.get(key);
+      if (content !== undefined) {
+        const fullPath = path.join(opts.targetDir, key);
+        await mkdir(path.dirname(fullPath), { recursive: true });
+        await writeFile(fullPath, content, 'utf8');
+        written.push(key);
+        pending.delete(key);
+      }
+    }
+    onStep?.(label, true);
   }
 
-  // Create empty directories
+  await writeGroup('Scaffolding project structure', [
+    'package.json',
+    'tsconfig.json',
+    '.env',
+    '.env.example',
+    '.gitignore',
+    'faber.config.ts',
+  ]);
+
+  await writeGroup('Creating app skeleton', [
+    'bootstrap/app.ts',
+    'routes/api.ts',
+    'app/controllers/UserController.ts',
+    'app/services/UserService.ts',
+    'app/models/User.ts',
+    'app/providers/AppServiceProvider.ts',
+  ]);
+
+  const DB_LABEL: Record<ScaffoldOptions['dbDriver'], string> = {
+    sqlite: 'SQLite',
+    'sqlite-wasm': 'SQLite (WASM)',
+    postgres: 'PostgreSQL',
+    mysql: 'MySQL',
+  };
+
+  await writeGroup(`Configuring ${DB_LABEL[opts.dbDriver]} database`, [
+    'config/app.ts',
+    'config/database.ts',
+    'database/migrations/0001_create_users_table.ts',
+  ]);
+
+  if (opts.includeAuth) {
+    await writeGroup('Setting up authentication', ['app/providers/AuthServiceProvider.ts']);
+  }
+
+  const agentKeys = [...pending.keys()];
+  if (agentKeys.length > 0) {
+    await writeGroup('Wiring agent integrations', agentKeys);
+  }
+
+  onStep?.('Creating project directories', false);
   for (const dir of [
     'storage/logs',
     'storage/cache',
@@ -1322,6 +1375,7 @@ export async function scaffoldProject(opts: ScaffoldOptions): Promise<string[]> 
   ]) {
     await mkdir(path.join(opts.targetDir, dir), { recursive: true });
   }
+  onStep?.('Creating project directories', true);
 
   return written;
 }

@@ -101,20 +101,20 @@ async function main(): Promise<void> {
   const targetDir = path.resolve(process.cwd(), projectName);
   const opts: ScaffoldOptions = { projectName, targetDir, dbDriver, includeAuth, agents };
 
-  process.stdout.write(
-    `\n  ${pc.dim('Scaffolding')} ${pc.bold(pc.cyan(projectName))}${pc.dim('...')}\n\n`,
-  );
+  process.stdout.write('\n');
 
-  const written = await scaffoldProject(opts);
+  const start = Date.now();
 
-  for (const file of written) {
-    const rel = file.startsWith(targetDir) ? file.slice(targetDir.length + 1) : file;
-    process.stdout.write(`  ${pc.green('+')} ${pc.dim(rel)}\n`);
-  }
+  await scaffoldProject(opts, (label, done) => {
+    if (!done) {
+      process.stdout.write(`  ${pc.dim('○')} ${label}`);
+    } else {
+      process.stdout.write(`\r  ${pc.green('✓')} ${label}\n`);
+    }
+  });
 
-  process.stdout.write(
-    `\n  ${pc.green('✓')} ${pc.bold(`Created ${written.length.toString()} files`)}\n`,
-  );
+  const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+  process.stdout.write(`\n  ${pc.green('✓')} ${pc.bold(`Done in ${elapsed}s`)}\n`);
 
   process.stdout.write(`\n  ${pc.bold('Next steps:')}\n\n`);
   process.stdout.write(`    ${pc.cyan('cd')} ${pc.white(projectName)}\n`);
