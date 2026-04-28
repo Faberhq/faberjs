@@ -4,7 +4,7 @@ import { DatabaseConversationMemory } from './database-memory';
 
 const TABLE = 'test_conversations';
 
-async function setupTable(): Promise<void> {
+beforeEach(async () => {
   const db = createConnection({
     client: 'better-sqlite3',
     connection: { filename: ':memory:' },
@@ -17,23 +17,17 @@ async function setupTable(): Promise<void> {
     t.text('content').notNullable();
     t.string('created_at').notNullable();
   });
-}
+});
+
+afterEach(async () => {
+  await destroyConnection();
+});
 
 describe('DatabaseConversationMemory', () => {
-  beforeEach(async () => {
-    await setupTable();
-  });
-
-  afterEach(async () => {
-    await destroyConnection();
-  });
-
   describe('add() + getHistory()', () => {
     it('should persist messages and retrieve them in order', async () => {
       const memory = new DatabaseConversationMemory(TABLE);
       memory.add({ role: 'user', content: 'Hello' });
-      // Give fire-and-forget a tick to complete
-      await new Promise((r) => setTimeout(r, 10));
 
       const history = await memory.getHistory();
       expect(history.length).toBe(1);
@@ -45,7 +39,6 @@ describe('DatabaseConversationMemory', () => {
       const memory = new DatabaseConversationMemory(TABLE);
       memory.add({ role: 'user', content: 'A' }, 'session-a');
       memory.add({ role: 'user', content: 'B' }, 'session-b');
-      await new Promise((r) => setTimeout(r, 10));
 
       const histA = await memory.getHistory('session-a');
       const histB = await memory.getHistory('session-b');
@@ -60,15 +53,26 @@ describe('DatabaseConversationMemory', () => {
       const history = await memory.getHistory('empty-session');
       expect(history).toEqual([]);
     });
+
+    it('should accumulate multiple messages in order', async () => {
+      const memory = new DatabaseConversationMemory(TABLE);
+      memory.add({ role: 'user', content: 'First' });
+      memory.add({ role: 'assistant', content: 'Second' });
+      memory.add({ role: 'user', content: 'Third' });
+
+      const history = await memory.getHistory();
+      expect(history.length).toBe(3);
+      expect(history[0]?.content).toBe('First');
+      expect(history[2]?.content).toBe('Third');
+    });
   });
 
   describe('clear()', () => {
     it('should delete all messages for the session', async () => {
       const memory = new DatabaseConversationMemory(TABLE);
       memory.add({ role: 'user', content: 'Hi' });
-      await new Promise((r) => setTimeout(r, 10));
-
       await memory.clear();
+
       const history = await memory.getHistory();
       expect(history.length).toBe(0);
     });
@@ -77,7 +81,6 @@ describe('DatabaseConversationMemory', () => {
       const memory = new DatabaseConversationMemory(TABLE);
       memory.add({ role: 'user', content: 'A' }, 'a');
       memory.add({ role: 'user', content: 'B' }, 'b');
-      await new Promise((r) => setTimeout(r, 10));
 
       await memory.clear('a');
       expect((await memory.getHistory('a')).length).toBe(0);

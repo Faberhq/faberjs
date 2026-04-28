@@ -15,13 +15,13 @@ async function getMockCreate(): Promise<ReturnType<typeof vi.fn>> {
   return A['__mockCreate'] as ReturnType<typeof vi.fn>;
 }
 
-describe('explainError()', () => {
-  beforeEach(async () => {
-    const { clearExplainerCache } = await import('./error-explainer');
-    clearExplainerCache();
-    (await getMockCreate()).mockReset();
-  });
+beforeEach(async () => {
+  const { clearExplainerCache } = await import('./error-explainer');
+  clearExplainerCache();
+  (await getMockCreate()).mockReset();
+});
 
+describe('explainError()', () => {
   it('should return empty string when no API key is set', async () => {
     const { explainError } = await import('./error-explainer');
     delete process.env['ANTHROPIC_API_KEY'];

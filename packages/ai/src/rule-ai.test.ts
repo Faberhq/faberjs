@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, afterEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 vi.mock('@anthropic-ai/sdk', () => {
   const mockCreate = vi.fn();
@@ -16,8 +16,8 @@ async function getMockCreate(): Promise<ReturnType<typeof vi.fn>> {
 }
 
 describe('AiRule', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
+  beforeEach(async () => {
+    (await getMockCreate()).mockReset();
   });
 
   it('should pass (return null) when AI returns valid:true', async () => {
