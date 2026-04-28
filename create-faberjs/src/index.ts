@@ -103,12 +103,14 @@ async function main(): Promise<void> {
 
   process.stdout.write('\n');
 
+  const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
   const start = Date.now();
 
-  await scaffoldProject(opts, (label, done) => {
+  await scaffoldProject(opts, async (label, done) => {
     if (!done) {
       process.stdout.write(`  ${pc.dim('○')} ${label}`);
     } else {
+      await sleep(320);
       process.stdout.write(`\r  ${pc.green('✓')} ${label}\n`);
     }
   });

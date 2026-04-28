@@ -9,7 +9,7 @@ export interface ScaffoldOptions {
   readonly agents?: ReadonlyArray<'claude' | 'cursor' | 'copilot' | 'windsurf'>;
 }
 
-export type StepCallback = (label: string, done: boolean) => void;
+export type StepCallback = (label: string, done: boolean) => void | Promise<void>;
 
 type FileMap = Record<string, string>;
 
@@ -1307,7 +1307,7 @@ export async function scaffoldProject(
   const pending = new Map(Object.entries(files));
 
   async function writeGroup(label: string, keys: string[]): Promise<void> {
-    onStep?.(label, false);
+    await onStep?.(label, false);
     for (const key of keys) {
       const content = pending.get(key);
       if (content !== undefined) {
@@ -1318,7 +1318,7 @@ export async function scaffoldProject(
         pending.delete(key);
       }
     }
-    onStep?.(label, true);
+    await onStep?.(label, true);
   }
 
   await writeGroup('Scaffolding project structure', [
@@ -1361,7 +1361,7 @@ export async function scaffoldProject(
     await writeGroup('Wiring agent integrations', agentKeys);
   }
 
-  onStep?.('Creating project directories', false);
+  await onStep?.('Creating project directories', false);
   for (const dir of [
     'storage/logs',
     'storage/cache',
@@ -1375,7 +1375,7 @@ export async function scaffoldProject(
   ]) {
     await mkdir(path.join(opts.targetDir, dir), { recursive: true });
   }
-  onStep?.('Creating project directories', true);
+  await onStep?.('Creating project directories', true);
 
   return written;
 }
