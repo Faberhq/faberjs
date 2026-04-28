@@ -1,9 +1,22 @@
+// ── JWT auth ──────────────────────────────────────────────────────────────────
 export { Auth } from './auth';
 export { AuthMiddleware } from './auth-middleware';
 export { AuthServiceProvider } from './auth-service-provider';
-export { Gate } from './gate';
 export { JwtGuard } from './jwt-guard';
+
+// ── API token auth ────────────────────────────────────────────────────────────
+export { TokenAuth } from './token-auth';
+export { TokenAuthServiceProvider } from './token-auth-service-provider';
+export { TokenGuard } from './token-guard';
+export { TokenMiddleware } from './token-middleware';
+export { PersonalAccessToken } from './personal-access-token';
+export type { NewTokenResult } from './token-guard';
+
+// ── Authorization ─────────────────────────────────────────────────────────────
+export { Gate } from './gate';
 export { Policy } from './policy';
+
+// ── Shared ────────────────────────────────────────────────────────────────────
 export { UserProvider } from './user-provider';
 export type {
   AuthConfig,
@@ -11,5 +24,6 @@ export type {
   GuardContract,
   JwtPayload,
   PolicyContract,
+  TokenConfig,
   UserProviderContract,
 } from './types';

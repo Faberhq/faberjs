@@ -95,6 +95,9 @@ importers:
       '@faber-js/http':
         specifier: workspace:^
         version: link:../http
+      '@faber-js/orm':
+        specifier: workspace:^
+        version: link:../orm
       jose:
         specifier: ^5.9.6
         version: 5.10.0

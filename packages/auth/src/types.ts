@@ -37,3 +37,11 @@ export interface GateContract {
 export interface PolicyContract {
   before?(user: AuthUser, ability: string): boolean | undefined | Promise<boolean | undefined>;
 }
+
+export interface TokenConfig {
+  /**
+   * Optional token TTL in vercel/ms shorthand — e.g. `"30d"`, `"24h"`, `"15m"`.
+   * Omit for non-expiring tokens.
+   */
+  readonly expiresIn?: string;
+}

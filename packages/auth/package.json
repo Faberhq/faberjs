@@ -1,7 +1,7 @@
 {
   "name": "@faber-js/auth",
-  "version": "1.0.19",
-  "description": "FaberJS JWT-based authentication guards and authorization policies",
+  "version": "1.0.20",
+  "description": "FaberJS authentication — JWT guards, database API tokens, and authorization policies",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -25,6 +25,7 @@
     "framework",
     "auth",
     "jwt",
+    "api-tokens",
     "authorization",
     "policies"
   ],
@@ -35,6 +36,7 @@
   "dependencies": {
     "@faber-js/core": "workspace:^",
     "@faber-js/http": "workspace:^",
+    "@faber-js/orm": "workspace:^",
     "jose": "^5.9.6"
   }
 }
