@@ -74,6 +74,10 @@ export class Request {
     return { ...this.inputData };
   }
 
+  body(): Record<string, unknown> {
+    return { ...this.#body };
+  }
+
   only(...keys: string[]): Record<string, unknown> {
     const data = this.inputData;
     return Object.fromEntries(keys.filter((k) => k in data).map((k) => [k, data[k]]));

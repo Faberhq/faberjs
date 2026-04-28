@@ -35,12 +35,12 @@ export class Response {
     return new Response({ body: null, status: 204, headers: {} });
   }
 
-  static notFound(message = 'Not Found'): Response {
-    return Response.json({ message }, 404);
+  static notFound(message = 'Not Found', body?: Record<string, unknown>): Response {
+    return Response.json(body ?? { message }, 404);
   }
 
-  static error(message: string, status = 500): Response {
-    return Response.json({ message }, status);
+  static error(message: string, status = 500, body?: Record<string, unknown>): Response {
+    return Response.json(body ?? { message }, status);
   }
 
   static redirect(url: string, status = 302): Response {
@@ -77,12 +77,12 @@ export class ResponseFactory {
     return Response.noContent();
   }
 
-  notFound(message?: string): Response {
-    return Response.notFound(message);
+  notFound(message?: string, body?: Record<string, unknown>): Response {
+    return Response.notFound(message, body);
   }
 
-  error(message: string, status?: number): Response {
-    return Response.error(message, status);
+  error(message: string, status?: number, body?: Record<string, unknown>): Response {
+    return Response.error(message, status, body);
   }
 
   redirect(url: string, status?: number): Response {

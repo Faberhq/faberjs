@@ -16,6 +16,7 @@ export abstract class TokenAuthServiceProvider extends ServiceProvider {
     // 'auth.token.guard' is what TokenAuth facade uses directly.
     this.app.singleton('auth.guard', () => guard);
     this.app.singleton('auth.token.guard', () => guard);
+    this.app.singleton('auth.guard.token', () => guard);
     this.app.singleton('gate', () => new Gate());
   }
 }

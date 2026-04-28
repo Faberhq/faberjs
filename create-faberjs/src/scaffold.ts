@@ -6,13 +6,13 @@ export interface ScaffoldOptions {
   readonly targetDir: string;
   readonly dbDriver: 'sqlite' | 'postgres' | 'mysql';
   readonly includeAuth: boolean;
-  readonly agents: ReadonlyArray<'claude' | 'cursor' | 'copilot' | 'windsurf'>;
+  readonly agents?: ReadonlyArray<'claude' | 'cursor' | 'copilot' | 'windsurf'>;
 }
 
 type FileMap = Record<string, string>;
 
 function buildFiles(opts: ScaffoldOptions): FileMap {
-  const { projectName, dbDriver, includeAuth, agents } = opts;
+  const { projectName, dbDriver, includeAuth, agents = [] } = opts;
 
   const dbConfig = buildDbConfig(dbDriver);
   const authImports = includeAuth

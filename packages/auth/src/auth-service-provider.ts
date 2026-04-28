@@ -8,7 +8,9 @@ export abstract class AuthServiceProvider extends ServiceProvider {
   protected abstract userProvider(): UserProviderContract;
 
   register(): void {
-    this.app.singleton('auth.guard', () => new JwtGuard(this.authConfig(), this.userProvider()));
+    const guard = new JwtGuard(this.authConfig(), this.userProvider());
+    this.app.singleton('auth.guard', () => guard);
+    this.app.singleton('auth.guard.jwt', () => guard);
     this.app.singleton('gate', () => new Gate());
   }
 }
