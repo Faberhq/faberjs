@@ -85,13 +85,7 @@ describe('RateLimiter', () => {
   });
 
   describe('getInstance', () => {
-    it('throws when not configured', () => {
-      // Reset the static instance by creating a new driver but without calling configure
-      // We test this by accessing the instance directly after creating an unconfigured state
-      // The simplest approach: create a temporary state
-      const _origInstance = RateLimiter['getInstance'];
-      // We'll test via a fresh MemoryDriver-less scenario by reimporting would be overkill
-      // Instead just verify configured instance does NOT throw
+    it('returns the configured instance without throwing', () => {
       expect(() => RateLimiter.getInstance()).not.toThrow();
     });
   });

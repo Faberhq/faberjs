@@ -25,10 +25,16 @@ export abstract class Model {
   #relations: Record<string, unknown> = {};
   #visibleOverrides: Set<string> | null = null;
   #additionalHidden: Set<string> | null = null;
+  #trx: Knex.Transaction | null = null;
   exists = false;
 
   fill(attrs: Record<string, ColumnValue>): this {
     this.#attributes = { ...this.#attributes, ...attrs };
+    return this;
+  }
+
+  useTransaction(trx: Knex.Transaction): this {
+    this.#trx = trx;
     return this;
   }
 
@@ -92,7 +98,7 @@ export abstract class Model {
 
   async save(): Promise<this> {
     const ctor = this.constructor as typeof Model;
-    const db = getConnection();
+    const db = this.#trx ?? getConnection();
     const attrs = { ...this.#attributes };
 
     if (this.exists) {
@@ -115,7 +121,7 @@ export abstract class Model {
   async delete(): Promise<void> {
     const ctor = this.constructor as typeof Model;
     const pk = this.#attributes[ctor.primaryKey];
-    const db = getConnection();
+    const db = this.#trx ?? getConnection();
     if (ctor.softDeletes) {
       const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
       await db(ctor.table).where(ctor.primaryKey, pk).update({ deleted_at: now });
@@ -130,7 +136,8 @@ export abstract class Model {
     const ctor = this.constructor as typeof Model;
     if (!ctor.softDeletes) return;
     const pk = this.#attributes[ctor.primaryKey];
-    await getConnection()(ctor.table).where(ctor.primaryKey, pk).update({ deleted_at: null });
+    const db = this.#trx ?? getConnection();
+    await db(ctor.table).where(ctor.primaryKey, pk).update({ deleted_at: null });
     this.#attributes['deleted_at'] = null;
   }
 
@@ -212,10 +219,13 @@ export abstract class Model {
   static async create<T extends Model>(
     this: ModelStatics<T>,
     attrs: Record<string, ColumnValue>,
+    trx?: Knex.Transaction,
   ): Promise<T> {
     const instance = new this();
-    (instance as unknown as Model).fill(attrs);
-    await (instance as unknown as Model).save();
+    const model = instance as unknown as Model;
+    model.fill(attrs);
+    if (trx) model.useTransaction(trx);
+    await model.save();
     return instance;
   }
 
@@ -287,6 +297,30 @@ export abstract class Model {
       return qb.orWhere(column, operatorOrValue as ColumnValue);
     }
     return qb.orWhere(column, operatorOrValue as WhereOperator, value);
+  }
+
+  static whereIn<T extends Model>(
+    this: ModelStatics<T>,
+    column: string,
+    values: ColumnValue[],
+  ): QueryBuilder<T> {
+    return new QueryBuilder<T>(this).whereIn(column, values);
+  }
+
+  static whereNotIn<T extends Model>(
+    this: ModelStatics<T>,
+    column: string,
+    values: ColumnValue[],
+  ): QueryBuilder<T> {
+    return new QueryBuilder<T>(this).whereNotIn(column, values);
+  }
+
+  static whereNull<T extends Model>(this: ModelStatics<T>, column: string): QueryBuilder<T> {
+    return new QueryBuilder<T>(this).whereNull(column);
+  }
+
+  static whereNotNull<T extends Model>(this: ModelStatics<T>, column: string): QueryBuilder<T> {
+    return new QueryBuilder<T>(this).whereNotNull(column);
   }
 
   static orderBy<T extends Model>(

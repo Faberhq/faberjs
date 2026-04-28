@@ -73,14 +73,23 @@ export class {{Name}}Job extends Job {
 }
 `,
 
-  event: `export interface {{Name}}Event {
+  event: `import type { EventPayload } from '@faber-js/events';
+
+export interface {{Name}}EventPayload extends EventPayload {
   readonly type: '{{Name}}';
   // Add event payload fields here
 }
+
+export function make{{Name}}Event(payload: Omit<{{Name}}EventPayload, 'type'>): {{Name}}EventPayload {
+  return { type: '{{Name}}', ...payload };
+}
 `,
 
-  listener: `export class {{Name}}Listener {
-  async handle(event: Record<string, unknown>): Promise<void> {
+  listener: `import { Listener } from '@faber-js/events';
+import type { EventPayload } from '@faber-js/events';
+
+export class {{Name}}Listener extends Listener {
+  async handle(event: EventPayload): Promise<void> {
     // Handle the event here
     void event;
   }
@@ -206,12 +215,12 @@ export class {{Name}}Policy extends Policy {
   mail: `import { Mailable } from '@faber-js/mail';
 
 export class {{Name}}Mail extends Mailable {
-  constructor(private readonly to: string) {
+  constructor(private readonly recipient: string) {
     super();
   }
 
   build(): void {
-    this.to(this.to)
+    this.to(this.recipient)
       .subject('{{Name}}')
       .html('<p>Hello from FaberJS!</p>');
   }

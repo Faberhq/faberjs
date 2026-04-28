@@ -6,7 +6,7 @@ import { Authorize } from './authorize';
 
 function makeRequest(user: { id: number; [key: string]: unknown } | null = null): Request {
   const req = new Request({ method: 'GET', path: '/' });
-  req.user = user;
+  req.setUser(user);
   return req;
 }
 

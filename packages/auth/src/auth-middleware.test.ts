@@ -44,7 +44,7 @@ describe('AuthMiddleware', () => {
 
       await middleware.handle(req, next as never);
 
-      expect(req.user).toEqual(alice);
+      expect(req.user()).toEqual(alice);
       expect(next).toHaveBeenCalledWith(req);
     });
 

@@ -9,7 +9,12 @@ export { Factory } from './factory';
 export { Seeder } from './seeder';
 export { ModelNotFoundException, DatabaseException } from './exceptions';
 export { HasMany, HasOne, BelongsTo, BelongsToMany } from './relations';
-export { Blueprint, ColumnDefinition } from './blueprint';
+export {
+  Blueprint,
+  ColumnDefinition,
+  ForeignKeyBuilder,
+  ForeignKeyReferencingBuilder,
+} from './blueprint';
 export type {
   ColumnValue,
   WhereOperator,

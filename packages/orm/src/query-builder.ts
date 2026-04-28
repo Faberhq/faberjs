@@ -31,6 +31,12 @@ export class QueryBuilder<T extends ModelLike> {
     operator: WhereOperator;
     value: ColumnValue;
   }> = [];
+  #whereIns: Array<{
+    type: 'whereIn' | 'whereNotIn';
+    column: string;
+    values: ColumnValue[];
+  }> = [];
+  #whereNulls: Array<{ type: 'whereNull' | 'whereNotNull'; column: string }> = [];
   #orderBys: Array<{ column: string; direction: OrderDirection }> = [];
   #limitValue: number | null = null;
   #offsetValue: number | null = null;
@@ -69,6 +75,26 @@ export class QueryBuilder<T extends ModelLike> {
         ? (['=' as WhereOperator, operatorOrValue as ColumnValue] as const)
         : ([operatorOrValue as WhereOperator, value] as const);
     this.#wheres.push({ type: 'orWhere', column, operator: op, value: val });
+    return this;
+  }
+
+  whereIn(column: string, values: ColumnValue[]): this {
+    this.#whereIns.push({ type: 'whereIn', column, values });
+    return this;
+  }
+
+  whereNotIn(column: string, values: ColumnValue[]): this {
+    this.#whereIns.push({ type: 'whereNotIn', column, values });
+    return this;
+  }
+
+  whereNull(column: string): this {
+    this.#whereNulls.push({ type: 'whereNull', column });
+    return this;
+  }
+
+  whereNotNull(column: string): this {
+    this.#whereNulls.push({ type: 'whereNotNull', column });
     return this;
   }
 
@@ -201,6 +227,22 @@ export class QueryBuilder<T extends ModelLike> {
         q = q.where(w.column, w.operator, w.value);
       } else {
         q = q.orWhere(w.column, w.operator, w.value);
+      }
+    }
+
+    for (const w of this.#whereIns) {
+      if (w.type === 'whereIn') {
+        q = q.whereIn(w.column, w.values as Knex.Value[]);
+      } else {
+        q = q.whereNotIn(w.column, w.values as Knex.Value[]);
+      }
+    }
+
+    for (const w of this.#whereNulls) {
+      if (w.type === 'whereNull') {
+        q = q.whereNull(w.column);
+      } else {
+        q = q.whereNotNull(w.column);
       }
     }
 

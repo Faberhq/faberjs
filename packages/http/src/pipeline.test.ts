@@ -60,11 +60,11 @@ describe('Pipeline', () => {
     it('allows middleware to modify the request before passing it along', async () => {
       let seenUser: unknown = null;
       const setUser = makeMiddleware(async (req, next) => {
-        req.user = { id: 99 };
+        req.setUser({ id: 99 });
         return next(req);
       });
       const destination = (req: Request): Promise<Response> => {
-        seenUser = req.user;
+        seenUser = req.user();
         return okResponse();
       };
 

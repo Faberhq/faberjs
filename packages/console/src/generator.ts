@@ -41,6 +41,24 @@ export interface GenerateResult {
   readonly content: string;
 }
 
+// Suffixes automatically appended to the class/file name by each generator type.
+// If the user passes e.g. "UserController" for type "controller", strip the trailing
+// "Controller" first so we don't produce "UserControllerController.ts".
+const TYPE_SUFFIXES: Record<string, string> = {
+  controller: 'Controller',
+  service: 'Service',
+  job: 'Job',
+  event: 'Event',
+  listener: 'Listener',
+  middleware: 'Middleware',
+  command: 'Command',
+  provider: 'ServiceProvider',
+  agent: 'Agent',
+  channel: 'Channel',
+  mail: 'Mail',
+  policy: 'Policy',
+};
+
 export function generateFile(
   type: string,
   name: string,
@@ -49,6 +67,15 @@ export function generateFile(
 ): GenerateResult {
   const stub = stubs[type];
   if (!stub) throw new Error(`Unknown generator type: ${type}`);
+
+  // Strip type-specific suffix if the user already included it.
+  const suffix = TYPE_SUFFIXES[type];
+  if (suffix) {
+    const pascalInput = toPascalCase(name);
+    if (pascalInput.endsWith(suffix)) {
+      name = pascalInput.slice(0, -suffix.length);
+    }
+  }
 
   const pascal = toPascalCase(name);
   const camel = toCamelCase(name);

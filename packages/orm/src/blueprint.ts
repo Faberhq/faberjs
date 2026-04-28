@@ -40,6 +40,41 @@ export class ColumnDefinition {
   }
 }
 
+export class ForeignKeyReferencingBuilder {
+  #ref: Knex.ReferencingColumnBuilder;
+
+  constructor(ref: Knex.ReferencingColumnBuilder) {
+    this.#ref = ref;
+  }
+
+  on(table: string): this {
+    this.#ref = this.#ref.inTable(table);
+    return this;
+  }
+
+  onDelete(action: 'CASCADE' | 'SET NULL' | 'RESTRICT' | 'NO ACTION'): this {
+    this.#ref = this.#ref.onDelete(action);
+    return this;
+  }
+
+  onUpdate(action: 'CASCADE' | 'SET NULL' | 'RESTRICT' | 'NO ACTION'): this {
+    this.#ref = this.#ref.onUpdate(action);
+    return this;
+  }
+}
+
+export class ForeignKeyBuilder {
+  readonly #fkBuilder: Knex.ForeignConstraintBuilder;
+
+  constructor(fkBuilder: Knex.ForeignConstraintBuilder) {
+    this.#fkBuilder = fkBuilder;
+  }
+
+  references(column: string): ForeignKeyReferencingBuilder {
+    return new ForeignKeyReferencingBuilder(this.#fkBuilder.references(column));
+  }
+}
+
 export class Blueprint {
   readonly #table: Knex.CreateTableBuilder;
 
@@ -101,6 +136,10 @@ export class Blueprint {
   index(columns: string[]): this {
     this.#table.index(columns);
     return this;
+  }
+
+  foreign(column: string): ForeignKeyBuilder {
+    return new ForeignKeyBuilder(this.#table.foreign(column));
   }
 
   dropColumn(column: string): this {
