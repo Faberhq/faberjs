@@ -118,6 +118,18 @@ export class QueryBuilder<T extends ModelLike> {
     return this;
   }
 
+  scope(name: string, ...args: unknown[]): this {
+    const ctor = this.#ModelCtor as unknown as Record<string, unknown>;
+    const methodName = `scope${name.charAt(0).toUpperCase()}${name.slice(1)}`;
+    const scopeFn = ctor[methodName];
+    if (typeof scopeFn !== 'function') {
+      throw new Error(
+        `Scope [${name}] is not defined on ${(this.#ModelCtor as unknown as { name: string }).name}.`,
+      );
+    }
+    return (scopeFn as (qb: this, ...a: unknown[]) => this)(this, ...args);
+  }
+
   with(...relations: string[]): this {
     this.#eagerLoads.push(...relations);
     return this;

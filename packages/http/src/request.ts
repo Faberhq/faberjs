@@ -14,6 +14,7 @@ export interface RequestOptions {
 
 export class Request {
   #user: AuthUser | null = null;
+  #attributes = new Map<string, unknown>();
 
   user<T extends AuthUser = AuthUser>(): T | null {
     return this.#user as T | null;
@@ -22,6 +23,23 @@ export class Request {
   setUser(user: AuthUser | null): this {
     this.#user = user;
     return this;
+  }
+
+  // Arbitrary per-request attribute store — use this to pass resolved objects
+  // (tenant, plan, rate-limit info, etc.) from middleware to controllers without
+  // re-querying the database. Keys are namespaced strings by convention.
+  setAttribute(key: string, value: unknown): this {
+    this.#attributes.set(key, value);
+    return this;
+  }
+
+  getAttribute<T = unknown>(key: string, fallback?: T): T | undefined {
+    if (this.#attributes.has(key)) return this.#attributes.get(key) as T;
+    return fallback;
+  }
+
+  hasAttribute(key: string): boolean {
+    return this.#attributes.has(key);
   }
 
   readonly #method: string;

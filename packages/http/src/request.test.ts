@@ -184,4 +184,41 @@ describe('Request', () => {
       expect(makeRequest({ method: 'post' }).method()).toBe('POST');
     });
   });
+
+  describe('setAttribute / getAttribute / hasAttribute', () => {
+    it('stores and retrieves an arbitrary value', () => {
+      const req = makeRequest();
+      req.setAttribute('tenant', { id: 1, name: 'Acme' });
+      expect(req.getAttribute('tenant')).toEqual({ id: 1, name: 'Acme' });
+    });
+
+    it('returns undefined for a missing key', () => {
+      expect(makeRequest().getAttribute('missing')).toBeUndefined();
+    });
+
+    it('returns the fallback for a missing key', () => {
+      expect(makeRequest().getAttribute('missing', 'default')).toBe('default');
+    });
+
+    it('hasAttribute returns false before set, true after', () => {
+      const req = makeRequest();
+      expect(req.hasAttribute('plan')).toBe(false);
+      req.setAttribute('plan', 'pro');
+      expect(req.hasAttribute('plan')).toBe(true);
+    });
+
+    it('setAttribute is chainable', () => {
+      const req = makeRequest();
+      req.setAttribute('a', 1).setAttribute('b', 2);
+      expect(req.getAttribute('a')).toBe(1);
+      expect(req.getAttribute('b')).toBe(2);
+    });
+
+    it('typed getAttribute narrows the return type', () => {
+      const req = makeRequest();
+      req.setAttribute('count', 42);
+      const count = req.getAttribute<number>('count');
+      expect(count).toBe(42);
+    });
+  });
 });

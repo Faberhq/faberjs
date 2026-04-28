@@ -190,6 +190,25 @@ export abstract class Model {
     return qb;
   }
 
+  // Apply a named local scope defined as a static `scopeXxx` method on the model.
+  // Usage: User.scope('active') — equivalent to User.query().scope('active').
+  static scope<T extends Model>(
+    this: ModelStatics<T>,
+    name: string,
+    ...args: unknown[]
+  ): QueryBuilder<T> {
+    const ctor = this as unknown as Record<string, unknown>;
+    const methodName = `scope${name.charAt(0).toUpperCase()}${name.slice(1)}`;
+    const scopeFn = ctor[methodName];
+    if (typeof scopeFn !== 'function') {
+      throw new Error(
+        `Scope [${name}] is not defined on ${(this as unknown as typeof Model).name}.`,
+      );
+    }
+    const qb = new QueryBuilder<T>(this);
+    return (scopeFn as (qb: QueryBuilder<T>, ...a: unknown[]) => QueryBuilder<T>)(qb, ...args);
+  }
+
   static async find<T extends Model>(this: ModelStatics<T>, id: ColumnValue): Promise<T | null> {
     const ctor = this as unknown as typeof Model;
     const db = getConnection();

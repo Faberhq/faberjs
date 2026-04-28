@@ -124,6 +124,37 @@ describe('generateFile()', () => {
     });
   });
 
+  describe('double-suffix prevention', () => {
+    it('strips trailing Controller suffix when name already includes it', () => {
+      const result = generateFile('controller', 'UserController', cwd);
+      expect(result.content).toContain('class UserController extends Controller');
+      expect(result.filePath).toContain('UserController.ts');
+      expect(result.filePath).not.toContain('UserControllerController');
+    });
+
+    it('strips trailing Service suffix', () => {
+      const result = generateFile('service', 'PaymentService', cwd);
+      expect(result.content).toContain('class PaymentService extends Service');
+      expect(result.filePath).not.toContain('PaymentServiceService');
+    });
+
+    it('strips trailing Job suffix', () => {
+      const result = generateFile('job', 'SendEmailJob', cwd);
+      expect(result.content).toContain('class SendEmailJob');
+      expect(result.filePath).not.toContain('SendEmailJobJob');
+    });
+
+    it('strips trailing Listener suffix', () => {
+      const result = generateFile('listener', 'SendWelcomeEmailListener', cwd);
+      expect(result.filePath).not.toContain('ListenerListener');
+    });
+
+    it('strips trailing Middleware suffix', () => {
+      const result = generateFile('middleware', 'AuthMiddleware', cwd);
+      expect(result.filePath).not.toContain('MiddlewareMiddleware');
+    });
+  });
+
   describe('throws for unknown type', () => {
     it('throws an error for an unknown generator type', () => {
       expect(() => generateFile('unknown-type', 'Foo', cwd)).toThrow('Unknown generator type');
