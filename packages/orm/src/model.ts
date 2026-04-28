@@ -117,7 +117,7 @@ export abstract class Model {
     const pk = this.#attributes[ctor.primaryKey];
     const db = getConnection();
     if (ctor.softDeletes) {
-      const now = new Date().toISOString();
+      const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
       await db(ctor.table).where(ctor.primaryKey, pk).update({ deleted_at: now });
       this.#attributes['deleted_at'] = now;
     } else {

@@ -220,6 +220,18 @@ npx faber make:agent Support
 # CREATED app/agents/SupportAgent.ts
 ```
 
+### `npx faber make:view <Name>`
+
+Creates a `.view.tsx` file in `resources/views/` with the `@jsxImportSource` pragma and a typed `Props` interface. Supports nested paths.
+
+```bash
+npx faber make:view Dashboard
+# CREATED resources/views/Dashboard.view.tsx
+
+npx faber make:view users/index
+# CREATED resources/views/users/Index.view.tsx
+```
+
 ---
 
 ## Frontend Bridge
@@ -319,6 +331,7 @@ FaberJS Tinker — application ready
 | `npx faber make:provider <Name>`   | Generate a service provider                   |
 | `npx faber make:command <Name>`    | Generate a custom CLI command                 |
 | `npx faber make:agent <Name>`      | Generate an AI agent                          |
+| `npx faber make:view <Name>`       | Generate a JSX server-side view               |
 | `npx faber bridge:types`           | Generate BridgePages type map from pages dir  |
 | `npx faber route:list`             | List all registered routes                    |
 | `npx faber tinker`                 | Start an interactive REPL                     |

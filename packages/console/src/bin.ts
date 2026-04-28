@@ -1,6 +1,7 @@
 import { program } from 'commander';
 import {
   generateFile,
+  generateViewFile,
   makeMigrationClassName,
   makeMigrationFileName,
   writeGeneratedFile,
@@ -143,6 +144,15 @@ program
   .description('Create a new AI agent')
   .action((name: string) => {
     const result = generateFile('agent', name, cwd);
+    writeGeneratedFile(result);
+    log.created(result.filePath);
+  });
+
+program
+  .command('make:view <name>')
+  .description('Create a new JSX view (e.g. users/index, Dashboard)')
+  .action((name: string) => {
+    const result = generateViewFile(name, cwd);
     writeGeneratedFile(result);
     log.created(result.filePath);
   });

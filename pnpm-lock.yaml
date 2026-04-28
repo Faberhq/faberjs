@@ -297,6 +297,18 @@ importers:
         specifier: ^3.1.0
         version: 3.2.9(better-sqlite3@9.6.0)
 
+  packages/view:
+    dependencies:
+      '@faber-js/core':
+        specifier: workspace:^
+        version: link:../core
+      '@faber-js/http':
+        specifier: workspace:^
+        version: link:../http
+      '@faber-js/router':
+        specifier: workspace:^
+        version: link:../router
+
 packages:
 
   '@algolia/abtesting@1.17.0':

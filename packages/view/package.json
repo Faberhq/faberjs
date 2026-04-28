@@ -1,0 +1,51 @@
+{
+  "name": "@faber-js/view",
+  "version": "1.0.22",
+  "description": "FaberJS server-side JSX view renderer — a Blade alternative with type-safe props and auto-escaping",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
+    },
+    "./jsx-runtime": {
+      "types": "./dist/jsx-runtime.d.ts",
+      "require": "./dist/jsx-runtime.js",
+      "import": "./dist/jsx-runtime.mjs"
+    },
+    "./jsx-dev-runtime": {
+      "types": "./dist/jsx-runtime.d.ts",
+      "require": "./dist/jsx-runtime.js",
+      "import": "./dist/jsx-runtime.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "keywords": [
+    "faberjs",
+    "framework",
+    "view",
+    "jsx",
+    "template",
+    "ssr",
+    "html"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@faber-js/core": "workspace:^",
+    "@faber-js/http": "workspace:^",
+    "@faber-js/router": "workspace:^"
+  }
+}

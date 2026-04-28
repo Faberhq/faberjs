@@ -125,3 +125,19 @@ export function makeMigrationFileName(name: string): string {
   const timestamp = `${date.getFullYear()}_${pad(date.getMonth() + 1)}_${pad(date.getDate())}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
   return `${timestamp}_${name}.ts`;
 }
+
+export function generateViewFile(name: string, cwd: string): GenerateResult {
+  const segments = name.split(/[/\\]/);
+  const lastName = segments[segments.length - 1];
+  const componentName = toPascalCase(lastName);
+  const dirSegments = segments.slice(0, -1);
+
+  const viewsBase = join(cwd, 'resources', 'views');
+  const outDir = dirSegments.length > 0 ? join(viewsBase, ...dirSegments) : viewsBase;
+  const filePath = join(outDir, `${componentName}.view.tsx`);
+
+  const stub = stubs.view;
+  const content = stub.replaceAll('{{Name}}', componentName);
+
+  return { filePath, content };
+}

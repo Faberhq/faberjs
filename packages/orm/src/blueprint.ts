@@ -97,4 +97,14 @@ export class Blueprint {
     this.#table.index(columns);
     return this;
   }
+
+  dropColumn(column: string): this {
+    this.#table.dropColumn(column);
+    return this;
+  }
+
+  renameColumn(from: string, to: string): this {
+    this.#table.renameColumn(from, to);
+    return this;
+  }
 }

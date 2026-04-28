@@ -142,7 +142,8 @@ export class QueryBuilder<T extends ModelLike> {
 
   async delete(): Promise<void> {
     if (this.#ModelCtor.softDeletes && !this.#includeTrashed) {
-      await this.#buildQuery().update({ deleted_at: new Date().toISOString() });
+      const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+      await this.#buildQuery().update({ deleted_at: now });
     } else {
       await this.#buildQuery().delete();
     }

@@ -61,9 +61,11 @@ export default class {{ClassName}} extends Migration {
 }
 `,
 
-  job: `export class {{Name}}Job {
-  readonly queue = 'default';
-  readonly tries = 3;
+  job: `import { Job } from '@faber-js/queue';
+
+export class {{Name}}Job extends Job {
+  override readonly queue = 'default';
+  override readonly tries = 3;
 
   async handle(): Promise<void> {
     // Add your job logic here
@@ -121,7 +123,8 @@ export class {{Name}}ServiceProvider extends ServiceProvider {
 }
 `,
 
-  agent: `import { Injectable } from '@faber-js/core';
+  agent: `// Run: npm install @faber-js/ai  (or: pnpm add @faber-js/ai)
+import { Injectable } from '@faber-js/core';
 import { Agent, Tool } from '@faber-js/ai';
 
 @Injectable()
@@ -133,6 +136,21 @@ export class {{Name}}Agent extends Agent {
   async exampleTool(_input: Record<string, unknown>): Promise<string> {
     return 'result';
   }
+}
+`,
+
+  view: `/** @jsxImportSource @faber-js/view */
+
+interface Props {
+  // TODO: define props
+}
+
+export default function {{Name}}(_props: Props) {
+  return (
+    <div>
+      <h1>{{Name}}</h1>
+    </div>
+  );
 }
 `,
 };

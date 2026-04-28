@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve as resolvePath } from 'node:path';
 import pc from 'picocolors';
 import { log } from '../ui';
 
@@ -31,7 +31,6 @@ interface RouteRow {
 // the discovered routes as JSON for us to display.
 function loadRoutesFromApp(cwd: string): Promise<RouteRow[]> {
   const script = `
-    require('ts-node').register({ transpileOnly: true });
     const { Application } = require('@faber-js/core');
     const { RouterServiceProvider } = require('@faber-js/router');
     const path = require('node:path');
@@ -64,12 +63,16 @@ function loadRoutesFromApp(cwd: string): Promise<RouteRow[]> {
     process.stdout.write(JSON.stringify(rows));
   `;
 
+  // Resolve ts-node from the app's own node_modules so the child process
+  // can transpile TypeScript route files regardless of the global PATH.
+  const tsNodeRegister = resolvePath(cwd, 'node_modules', 'ts-node', 'register');
+
   return new Promise((resolve, reject) => {
     let stdout = '';
     let stderr = '';
-    const child = spawn('node', ['-e', script], {
+    const child = spawn('node', ['--require', tsNodeRegister, '-e', script], {
       cwd,
-      env: { ...process.env },
+      env: { ...process.env, TS_NODE_TRANSPILE_ONLY: 'true' },
     });
     child.stdout.on('data', (chunk: Buffer) => {
       stdout += chunk.toString();

@@ -30,7 +30,7 @@ export interface RouteDefinition {
   readonly method: HttpMethod;
   readonly path: string;
   readonly handler: ControllerAction;
-  readonly middleware: readonly string[];
+  middleware: string[];
   name?: string;
 }
 
@@ -66,6 +66,8 @@ export interface ExceptionHandler {
 export interface HttpKernelContract {
   use(middleware: Middleware): this;
   alias(name: string, middleware: Middleware): this;
+  register(name: string, middleware: Middleware): this;
+  pushGlobal(middleware: Middleware): this;
   listen(port: number, host?: string): Promise<void>;
   close(): Promise<void>;
 }

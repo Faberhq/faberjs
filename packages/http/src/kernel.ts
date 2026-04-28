@@ -33,6 +33,14 @@ export class HttpKernel implements HttpKernelContract {
     return this;
   }
 
+  register(name: string, middleware: Middleware): this {
+    return this.alias(name, middleware);
+  }
+
+  pushGlobal(middleware: Middleware): this {
+    return this.use(middleware);
+  }
+
   async listen(port: number, host = '127.0.0.1'): Promise<void> {
     if (this.app.bound('router')) {
       const router = this.app.make<RouterContract>('router');
@@ -126,6 +134,11 @@ export class HttpKernel implements HttpKernelContract {
 
     const body = res.getBody();
     if (body === null) {
+      const contentType = res.getHeaders()['content-type'] ?? '';
+      if (contentType.includes('application/json')) {
+        await reply.status(res.getStatus()).send('null');
+        return;
+      }
       await reply.status(res.getStatus()).send();
       return;
     }
@@ -169,6 +182,32 @@ export class HttpKernel implements HttpKernelContract {
       if (data !== undefined) body['errors'] = data;
       await reply.status(statusCode).send(body);
       return;
+    }
+
+    // Detect database unique-constraint violations and return a safe 409 response
+    if (error instanceof Error && 'code' in error) {
+      const code = (error as { code: string }).code;
+      const isUniqueViolation =
+        code === 'ER_DUP_ENTRY' ||
+        code === 'SQLITE_CONSTRAINT_UNIQUE' ||
+        code === 'SQLITE_CONSTRAINT' ||
+        code === '23505';
+      if (isUniqueViolation) {
+        await reply.status(409).send({ message: 'A conflicting record already exists.' });
+        return;
+      }
+      // Any other DB error — log internally, return generic 500
+      if ('errno' in error || 'sqlMessage' in error || 'sql' in error) {
+        const logMsg = error instanceof Error ? (error.stack ?? error.message) : String(error);
+        if (this.app.bound('log')) {
+          const logger = this.app.make<{ error(msg: string): void }>('log');
+          logger.error(logMsg);
+        } else {
+          process.stderr.write(`\x1b[31mERROR\x1b[0m ${logMsg}\n`);
+        }
+        await reply.status(500).send({ message: 'Internal Server Error' });
+        return;
+      }
     }
 
     const message = error instanceof Error ? (error.stack ?? error.message) : String(error);

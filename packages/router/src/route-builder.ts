@@ -18,6 +18,11 @@ export class RouteBuilder {
     return this;
   }
 
+  middleware(names: string[]): this {
+    this.#definition.middleware.push(...names);
+    return this;
+  }
+
   getDefinition(): RouteDefinition {
     return this.#definition;
   }
@@ -29,5 +34,5 @@ export function makeRouteDefinition(
   handler: ControllerAction,
   middleware: readonly string[],
 ): RouteDefinition {
-  return { method, path, handler, middleware };
+  return { method, path, handler, middleware: [...middleware] };
 }

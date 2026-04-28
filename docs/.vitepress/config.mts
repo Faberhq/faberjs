@@ -57,6 +57,7 @@ export default defineConfig({
           { text: 'Events & Listeners', link: '/digging-deeper/events-listeners' },
           { text: 'Validation', link: '/digging-deeper/validation' },
           { text: 'Authentication', link: '/digging-deeper/auth' },
+          { text: 'Views', link: '/digging-deeper/views' },
           { text: 'AI Agents', link: '/digging-deeper/ai-agents' },
         ],
       },
