@@ -1,4 +1,5 @@
 import { mkdir, writeFile } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 
 export interface ScaffoldOptions {
@@ -13,10 +14,15 @@ export type StepCallback = (label: string, done: boolean) => void | Promise<void
 
 type FileMap = Record<string, string>;
 
+function generateAppKey(): string {
+  return `base64:${randomBytes(32).toString('base64')}`;
+}
+
 function buildFiles(opts: ScaffoldOptions): FileMap {
   const { projectName, dbDriver, includeAuth, agents = [] } = opts;
 
   const dbConfig = buildDbConfig(dbDriver);
+  const appKey = generateAppKey();
   const authImports = includeAuth
     ? `\nimport { AuthServiceProvider } from '../app/providers/AuthServiceProvider';`
     : '';
@@ -91,7 +97,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
     '.env': [
       `APP_NAME="${projectName}"`,
       'APP_PORT=3000',
-      `APP_KEY=`,
+      `APP_KEY=${appKey}`,
       `APP_URL=http://localhost:3000`,
       '',
       ...dbConfig.envLines,
@@ -116,7 +122,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
     '.env.example': [
       `APP_NAME="${projectName}"`,
       'APP_PORT=3000',
-      `APP_KEY=`,
+      `APP_KEY=base64:...`,
       `APP_URL=http://localhost:3000`,
       '',
       ...dbConfig.exampleLines,

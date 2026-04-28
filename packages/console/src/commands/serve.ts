@@ -2,7 +2,9 @@ import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { join } from 'node:path';
 import pc from 'picocolors';
-import { printBanner, log } from '../ui';
+import { printServeBanner, log } from '../ui';
+
+const READY_MARKER = '\x00__FABER_READY__';
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -22,30 +24,53 @@ async function findAvailablePort(start: number, max = 20): Promise<number> {
 
 export async function startServer(cwd: string, port = 3000, version?: string): Promise<void> {
   const entry = join(cwd, 'bootstrap', 'app.ts');
-
   const actualPort = await findAvailablePort(port);
-
-  printBanner(version);
 
   if (actualPort !== port) {
     process.stdout.write(`  ${pc.yellow(`Port ${port} in use — using ${actualPort} instead`)}\n`);
   }
 
-  process.stdout.write(
-    `  ${pc.dim('─'.repeat(44))}\n` +
-      `  ${pc.dim('local')}    ${pc.cyan(`http://localhost:${actualPort}`)}\n` +
-      `  ${pc.dim('─'.repeat(44))}\n\n`,
-  );
+  const startTime = Date.now();
 
   const child = spawn(
     'node',
     ['--require', 'ts-node/register', '--env-file', '.env', '--watch', entry],
     {
       cwd,
-      stdio: 'inherit',
+      stdio: ['inherit', 'pipe', 'inherit'],
       env: { ...process.env, PORT: String(actualPort), APP_PORT: String(actualPort) },
     },
   );
+
+  let bannerPrinted = false;
+  let buffer = '';
+
+  child.stdout?.on('data', (chunk: Buffer) => {
+    buffer += chunk.toString();
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      const markerIdx = line.indexOf(READY_MARKER);
+      if (!bannerPrinted && markerIdx !== -1) {
+        bannerPrinted = true;
+        try {
+          const json = line.slice(markerIdx + READY_MARKER.length).trim();
+          const { routes, providers } = JSON.parse(json) as {
+            routes: number;
+            providers: number;
+          };
+          printServeBanner(version, actualPort, routes, providers, Date.now() - startTime);
+        } catch {
+          printServeBanner(version, actualPort, 0, 0, Date.now() - startTime);
+        }
+      } else {
+        const markerPos = line.indexOf(READY_MARKER);
+        const clean = markerPos !== -1 ? line.slice(0, markerPos) : line;
+        if (clean.trim()) process.stdout.write(clean + '\n');
+      }
+    }
+  });
 
   child.on('error', (err) => {
     log.error(`Failed to start server: ${err.message}`);

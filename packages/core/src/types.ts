@@ -32,4 +32,5 @@ export interface ContainerContract {
 
 export interface ApplicationContract extends ContainerContract {
   getBasePath(): string;
+  providerCount(): number;
 }

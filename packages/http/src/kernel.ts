@@ -81,8 +81,10 @@ export class HttpKernel implements HttpKernelContract {
   }
 
   async listen(port: number, host = '127.0.0.1'): Promise<void> {
+    let routeCount = 0;
     if (this.app.bound('router')) {
       const router = this.app.make<RouterContract>('router');
+      routeCount = router.getRoutes().length;
       this.registerRoutes(router);
     }
     await this.fastify.listen({ port, host });
@@ -91,6 +93,10 @@ export class HttpKernel implements HttpKernelContract {
       const first = addrs[0];
       this.address = `http://${first.address}:${first.port}`;
     }
+    const providers = this.app.providerCount();
+    process.stdout.write(
+      `\x00__FABER_READY__${JSON.stringify({ routes: routeCount, providers, port })}\n`,
+    );
   }
 
   async close(): Promise<void> {

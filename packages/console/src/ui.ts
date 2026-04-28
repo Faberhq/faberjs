@@ -49,6 +49,26 @@ export function printBanner(version?: string): void {
   process.stdout.write(bannerLines(version) + '\n');
 }
 
+export function printServeBanner(
+  version: string | undefined,
+  port: number,
+  routes: number,
+  providers: number,
+  elapsedMs: number,
+): void {
+  const ver = version ? `v${version}` : '';
+  const url = pc.cyan(`http://localhost:${port}`);
+  const ms = pc.bold(pc.cyan(`${elapsedMs}ms`));
+  const dim = pc.dim;
+
+  process.stdout.write(
+    `\n  ${pc.cyan('┌')} ${pc.bold(pc.cyan('FaberJS'))} ${dim(ver)}\n` +
+      `  ${pc.cyan('│')} ${dim('Server running on')} ${url}\n` +
+      `  ${pc.cyan('│')} ${dim('Routes loaded:')} ${pc.bold(String(routes))} ${dim('·')} ${dim('Providers:')} ${pc.bold(String(providers))}\n` +
+      `  ${pc.cyan('└')} ${dim('Ready in')} ${ms} ${pc.cyan('⚡')}\n\n`,
+  );
+}
+
 // ── Aligned output labels ─────────────────────────────────────────────────────
 
 function badge(color: (s: string) => string, label: string, msg: string): void {

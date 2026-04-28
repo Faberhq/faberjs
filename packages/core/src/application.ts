@@ -56,6 +56,10 @@ export class Application extends Container implements ApplicationContract {
     return this.isBooted;
   }
 
+  providerCount(): number {
+    return this.providers.length;
+  }
+
   reportExceptionsUsing(reporter: ExceptionReporter): this {
     this.exceptionReporter = reporter;
     this.instance('exception.reporter', reporter);
