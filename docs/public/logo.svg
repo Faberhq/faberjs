@@ -1,0 +1,39 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="grid" width="8" height="8" patternUnits="userSpaceOnUse">
+      <path d="M 8 0 L 0 0 0 8" fill="none" stroke="#0d2a45" stroke-width="0.5"/>
+    </pattern>
+    <clipPath id="clip">
+      <rect width="96" height="96" rx="20"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="96" height="96" rx="20" fill="#040f1c"/>
+  <rect width="96" height="96" rx="20" fill="url(#grid)" clip-path="url(#clip)"/>
+
+  <!-- Border glow -->
+  <rect x="0.75" y="0.75" width="94.5" height="94.5" rx="19.25" fill="none" stroke="#00d4ff" stroke-width="0.75" opacity="0.2"/>
+
+  <!-- F — vertical spine -->
+  <rect x="20" y="18" width="9" height="58" rx="2" fill="none" stroke="#00d4ff" stroke-width="2.5" filter="url(#glow)"/>
+  <!-- F — top crossbar -->
+  <rect x="20" y="18" width="48" height="9" rx="2" fill="none" stroke="#00d4ff" stroke-width="2.5" filter="url(#glow)"/>
+  <!-- F — mid crossbar -->
+  <rect x="20" y="38" width="34" height="9" rx="2" fill="none" stroke="#00d4ff" stroke-width="2.5" filter="url(#glow)"/>
+
+  <!-- Construction dots -->
+  <circle cx="20" cy="18" r="4"   fill="#00d4ff" filter="url(#glow)"/>
+  <circle cx="68" cy="18" r="4"   fill="#00d4ff" filter="url(#glow)"/>
+  <circle cx="20" cy="76" r="4"   fill="#00d4ff" filter="url(#glow)"/>
+  <circle cx="54" cy="38" r="3"   fill="#00d4ff" filter="url(#glow)" opacity="0.75"/>
+
+  <!-- Dimension ticks -->
+  <line x1="8" y1="18" x2="8" y2="76" stroke="#0d3a5a" stroke-width="1"/>
+  <line x1="5" y1="18" x2="11" y2="18" stroke="#0d3a5a" stroke-width="1"/>
+  <line x1="5" y1="76" x2="11" y2="76" stroke="#0d3a5a" stroke-width="1"/>
+</svg>

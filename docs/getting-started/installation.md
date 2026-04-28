@@ -15,7 +15,26 @@ npm create faberjs@latest my-app
 cd my-app
 ```
 
-The scaffolder will prompt you for your database driver and create a fully wired project directory.
+The scaffolder asks three questions, then writes the project in one shot:
+
+```
+  ? Database driver [sqlite/sqlite-wasm/postgres/mysql]:
+  ? Include auth scaffolding? (y/n):
+  ? Coding agent support [claude/cursor/copilot/windsurf/none]:
+```
+
+After answering you'll see each step complete in sequence:
+
+```
+  ✔ Scaffolding project structure
+  ✔ Creating app skeleton
+  ✔ Configuring SQLite database
+  ✔ Setting up authentication        ← only when auth = y
+  ✔ Wiring agent integrations        ← only when an agent is selected
+  ✔ Creating project directories
+
+  ✔ Done in 1.2s
+```
 
 ### Database driver options
 
@@ -56,6 +75,19 @@ my-app/
 ├── .env
 └── tsconfig.json
 ```
+
+### Coding agent integrations
+
+Selecting a coding agent adds context files that give the agent a full understanding of FaberJS conventions:
+
+| Agent | Files added |
+|---|---|
+| `claude` | `CLAUDE.md`, `.mcp.json` (auto-connects `@faber-js/mcp`), `.claude/commands/` slash commands |
+| `cursor` | `.cursorrules` |
+| `copilot` | `.github/copilot-instructions.md` |
+| `windsurf` | `.windsurfrules` |
+
+The Claude integration wires the `@faber-js/mcp` server automatically — Claude Code will have `faber_make`, `faber_docs`, `faber_migrate`, and `faber_route_list` tools available without any manual setup.
 
 ## First run
 
@@ -107,8 +139,8 @@ Your `tsconfig.json` must enable decorators and decorator metadata:
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
     "strict": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
@@ -117,4 +149,4 @@ Your `tsconfig.json` must enable decorators and decorator metadata:
 }
 ```
 
-These two flags are required for `@Injectable()` and the IoC container to work.
+`experimentalDecorators` and `emitDecoratorMetadata` are required for `@Injectable()` and the IoC container to work. The scaffolder uses `CommonJS` + `ts-node` for full decorator metadata support — `tsx` and `esbuild` do not emit decorator metadata.

@@ -1,0 +1,386 @@
+# FaberJS
+
+> Full-featured, opinionated Node.js/TypeScript backend framework that mirrors the Laravel developer experience. Routing, ORM, queues, events, auth, validation, and a CLI — all wired up, conventions in place, ready on day one.
+
+- Docs: https://faberjs.dev
+- GitHub: https://github.com/faberjs/faberjs
+- npm: https://www.npmjs.com/org/faber-js
+
+## Overview
+
+FaberJS targets Laravel developers moving to Node.js. It provides the same mental model (Route → Controller → Service → Model → Job/Event) in TypeScript. All packages are under the @faber-js/ npm scope.
+
+Tech: Node.js >= 20, TypeScript 5.x strict, Fastify v5 (hidden), Knex (hidden), BullMQ, JWT via jose.
+
+IMPORTANT: Fastify and Knex are implementation details — never import from them directly.
+
+## Installation
+
+npx create-faberjs@latest my-app
+cd my-app && npx faber serve
+
+## Project Structure
+
+app/controllers/       HTTP controllers (extend Controller)
+app/models/            ORM models (extend Model)
+app/services/          Business logic (extend Service)
+app/jobs/              Queue jobs (extend Job)
+app/events/            Event classes (extend Event)
+app/listeners/         Event listeners (extend Listener)
+app/policies/          Authorization policies (extend Policy)
+app/providers/         Service providers (extend ServiceProvider)
+app/commands/          Custom CLI commands (extend Command)
+bootstrap/app.ts       Application entry point
+config/                Typed config files
+database/migrations/   Migration files
+routes/api.ts          Route definitions
+.env                   Environment variables
+
+## Routing (@faber-js/router)
+
+import { Route } from '@faber-js/router';
+
+Route.get('/path', [Controller, 'method']);
+Route.post('/path', [Controller, 'method']);
+Route.put('/path/:id', [Controller, 'method']);
+Route.patch('/path/:id', [Controller, 'method']);
+Route.delete('/path/:id', [Controller, 'method']);
+
+Route.group({ prefix: '/api/v1', middleware: ['auth'] }, () => {
+  Route.resource('posts', PostController);   // generates index/store/show/update/destroy
+  Route.get('/me', [UserController, 'me']);
+});
+
+Route.middleware('auth').group(() => {
+  Route.get('/dashboard', [DashController, 'index']);
+});
+
+## Controllers (@faber-js/router + @faber-js/http)
+
+import { Injectable } from '@faber-js/core';
+import { Controller } from '@faber-js/router';
+import type { Request } from '@faber-js/http';
+import { Response } from '@faber-js/http';
+
+@Injectable()
+export class PostController extends Controller {
+  constructor(private readonly posts: PostService) { super(); }
+
+  async index(_req: Request): Promise<Response> {
+    return this.json({ data: await this.posts.all() });
+  }
+
+  async store(req: Request): Promise<Response> {
+    const post = await this.posts.create(req.validated());
+    return this.json({ data: post }, 201);
+  }
+
+  async show(req: Request): Promise<Response> {
+    return this.json({ data: await this.posts.find(Number(req.route('id'))) });
+  }
+
+  async update(req: Request): Promise<Response> {
+    const post = await this.posts.update(Number(req.route('id')), req.validated());
+    return this.json({ data: post });
+  }
+
+  async destroy(req: Request): Promise<Response> {
+    await this.posts.delete(Number(req.route('id')));
+    return this.noContent();
+  }
+}
+
+Request methods:
+  req.route(param)          URL route parameter
+  req.query(key, default?)  Query string value
+  req.input(key)            Body or query value
+  req.all()                 All body + query merged
+  req.validated()           Validated data (after FormRequest)
+  req.user<T>()             Authenticated user (requires auth middleware)
+  req.header(name)          Request header
+
+Controller helpers:
+  this.json(data, status?)  JSON response (default 200)
+  this.noContent()          204 No Content
+  this.authorize(ability, model)  throws 403 if policy denies
+
+## Services (@faber-js/core)
+
+import { Injectable, Service } from '@faber-js/core';
+
+@Injectable()
+export class PostService extends Service {
+  async all(): Promise<Post[]> {
+    return Post.all<Post>();
+  }
+
+  async find(id: number): Promise<Post | null> {
+    return Post.find<Post>(id);
+  }
+
+  async create(data: Record<string, unknown>): Promise<Post> {
+    const post = await Post.create<Post>(data as any);
+    await event(new PostCreated(post));
+    return post;
+  }
+
+  async update(id: number, data: Record<string, unknown>): Promise<Post | null> {
+    const post = await Post.find<Post>(id);
+    if (!post) return null;
+    await post.update(data as any);
+    return post;
+  }
+
+  async delete(id: number): Promise<void> {
+    const post = await Post.find<Post>(id);
+    if (post) await post.delete();
+  }
+}
+
+## ORM Models (@faber-js/orm)
+
+import { Model } from '@faber-js/orm';
+
+export class Post extends Model {
+  static table = 'posts';
+  static fillable = ['title', 'body', 'author_id', 'published'];
+  static hidden = [];
+
+  author() { return this.belongsTo(User, 'author_id'); }
+  comments() { return this.hasMany(Comment, 'post_id'); }
+  tags() { return this.belongsToMany(Tag, 'post_tags', 'post_id', 'tag_id'); }
+
+  scopePublished(query: any) {
+    return query.where('published', true).orderBy('created_at', 'desc');
+  }
+}
+
+Static query methods:
+  Post.all<Post>()
+  Post.find<Post>(id)                         returns null if not found
+  Post.findOrFail<Post>(id)                   throws 404
+  Post.where('column', value)
+  Post.where('column', 'operator', value)     >, <, >=, <=, !=, like
+  Post.orderBy('created_at', 'desc')
+  Post.limit(n).offset(n)
+  Post.with('author', 'tags')                 eager load
+  Post.paginate(page, perPage)                returns { data, total, page, perPage, lastPage }
+  Post.count()
+  Post.create<Post>(data)
+
+Instance methods:
+  post.update({ title: 'New' })
+  post.delete()
+  post.author                                 loaded relation
+
+## Migrations (@faber-js/orm)
+
+import { Migration, Schema } from '@faber-js/orm';
+
+export default class CreatePostsTable extends Migration {
+  async up(): Promise<void> {
+    await Schema.create('posts', (table) => {
+      table.id();
+      table.string('title');
+      table.text('body').nullable();
+      table.string('slug').unique();
+      table.boolean('published').defaultTo(false);
+      table.integer('author_id').unsigned();
+      table.foreign('author_id').references('users.id').onDelete('cascade');
+      table.decimal('price', 10, 2).nullable();
+      table.json('metadata').nullable();
+      table.timestamps();
+    });
+  }
+
+  async down(): Promise<void> {
+    await Schema.dropIfExists('posts');
+  }
+}
+
+Column types: id, string, text, integer, bigInteger, boolean, decimal, float, json, timestamp, timestamps, softDeletes, uuid
+Modifiers: .nullable(), .defaultTo(v), .unique(), .unsigned(), .index()
+
+## Queues & Jobs (@faber-js/queue)
+
+import { dispatch } from '@faber-js/queue';
+import { Job } from '@faber-js/queue';
+
+await dispatch(new SendWelcomeEmail(user));
+await dispatch(new ProcessPayment(order)).onQueue('payments').delay(60).attempts(3);
+
+export class SendWelcomeEmail extends Job {
+  constructor(public readonly user: User) { super(); }
+  static queue = 'emails';
+  static attempts = 3;
+
+  async handle(): Promise<void> {
+    // send email to this.user
+  }
+}
+
+Requires Redis. Set REDIS_HOST and REDIS_PORT in .env.
+
+## Events & Listeners (@faber-js/events)
+
+import { event } from '@faber-js/events';
+import { Event, Listener, ListenFor } from '@faber-js/events';
+
+await event(new UserRegistered(user));
+
+export class UserRegistered extends Event {
+  constructor(public readonly user: User) { super(); }
+}
+
+@ListenFor(UserRegistered)
+export class SendWelcomeEmailListener extends Listener {
+  async handle(e: UserRegistered): Promise<void> {
+    await dispatch(new SendWelcomeEmail(e.user));
+  }
+}
+
+Register in EventServiceProvider (two styles):
+  // Style 1: @ListenFor decorator + listeners array (recommended)
+  protected readonly listeners = [SendWelcomeEmailListener];
+
+  // Style 2: explicit string-key map
+  protected readonly listen = {
+    UserRegistered: [SendWelcomeEmailListener],
+  };
+
+## Auth & Policies (@faber-js/auth)
+
+Route protection:
+  Route.group({ middleware: ['auth'] }, () => { ... });
+  Route.middleware('auth').group(() => { ... });
+
+In controller:
+  const user = req.user<User>();
+  await this.authorize('update', post);     throws 403 if denied
+
+Policy class:
+  export class PostPolicy extends Policy {
+    async update(user: User, post: Post): Promise<boolean> {
+      return post.author_id === user.id;
+    }
+  }
+
+AuthServiceProvider setup (app/providers/AuthServiceProvider.ts):
+  export class AuthServiceProvider extends BaseAuthServiceProvider {
+    protected authConfig(): AuthConfig {
+      return { secret: process.env['JWT_SECRET'] ?? 'change-me', expiresIn: '7d' };
+    }
+    protected userProvider(): UserProviderContract {
+      return {
+        async findByCredentials(c) { return User.where('email', c.email).first<User>(); },
+        async findById(id) { return User.find<User>(Number(id)); },
+      };
+    }
+  }
+
+## Validation (@faber-js/validation)
+
+import { FormRequest } from '@faber-js/validation';
+
+export class CreatePostRequest extends FormRequest {
+  rules(): Record<string, string> {
+    return {
+      title:   'required|string|min:3|max:255',
+      body:    'required|string',
+      slug:    'required|string|unique:posts,slug',
+      price:   'numeric|min:0',
+    };
+  }
+  messages(): Record<string, string> {
+    return { 'title.required': 'A title is required.' };
+  }
+}
+
+Inject in controller constructor and call req.validated() — auto 422 on failure.
+
+Rules: required, string, integer, numeric, boolean, array, email, url, uuid
+       min:n, max:n, between:n,m, in:a,b, not_in:a,b
+       unique:table,column, exists:table,column, confirmed, nullable, sometimes
+
+## Configuration (@faber-js/config)
+
+import { env } from '@faber-js/config';
+const port = env('APP_PORT', 3000);      type inferred from default
+const name = env('APP_NAME', 'app');
+const debug = env('APP_DEBUG', false);
+
+## Bootstrap (@faber-js/core)
+
+bootstrap/app.ts:
+  import 'reflect-metadata';   MUST be first import
+  import { Application } from '@faber-js/core';
+  import { HttpServiceProvider, HttpKernel } from '@faber-js/http';
+  import { RouterServiceProvider } from '@faber-js/router';
+  import { OrmServiceProvider } from '@faber-js/orm';
+
+  void (async () => {
+    const app = new Application();
+    app.register(new HttpServiceProvider(app));
+    app.register(new RouterServiceProvider(app));
+    app.register(new OrmServiceProvider(app));
+    await app.boot();
+    require('../routes/api');
+    const kernel = app.make<HttpKernel>('http.kernel');
+    await kernel.listen(Number(process.env['APP_PORT'] ?? 3000));
+  })();
+
+## AI Agents (@faber-js/ai)
+
+import { Agent, Tool } from '@faber-js/ai';
+import { Injectable } from '@faber-js/core';
+
+@Injectable()
+export class SupportAgent extends Agent {
+  protected model = 'claude-sonnet-4-6';
+  protected systemPrompt = 'You are a helpful support agent.';
+
+  @Tool({ description: 'Look up a user by email' })
+  async lookupUser(input: { email: string }): Promise<string> {
+    const user = await User.where('email', input.email).first<User>();
+    return user ? JSON.stringify(user) : 'Not found';
+  }
+}
+
+const reply = await agent.chat(message);
+const stream = agent.stream(message);   async generator of string chunks
+
+## CLI Reference
+
+Code generation:
+  npx faber make:controller Name
+  npx faber make:model Name [-m]
+  npx faber make:service Name
+  npx faber make:job Name
+  npx faber make:event Name
+  npx faber make:listener Name
+  npx faber make:middleware Name
+  npx faber make:migration Name
+  npx faber make:provider Name
+  npx faber make:command Name
+  npx faber make:agent Name
+  npx faber make:validation Name
+
+Database:
+  npx faber db:migrate
+  npx faber db:rollback
+  npx faber db:seed
+  npx faber db:status
+
+Development:
+  npx faber serve
+  npx faber tinker
+  npx faber route:list
+
+## Anti-Patterns
+
+- Never import from fastify or knex directly
+- Never instantiate services with new — use constructor injection
+- Never skip reflect-metadata as the first import in bootstrap/app.ts
+- Never use req.body directly — use req.validated() or req.input()
+- Never write @Injectable() on Model subclasses — only on Controllers and Services
+- Never use ESM imports in app code — FaberJS apps run on CommonJS + ts-node

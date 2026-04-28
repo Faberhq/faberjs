@@ -63,6 +63,7 @@ export default defineConfig({
           { text: 'Real-Time Channels', link: '/digging-deeper/channels' },
           { text: 'DevTools Dashboard', link: '/digging-deeper/devtools' },
           { text: 'Runtime Adapters', link: '/digging-deeper/adapters' },
+          { text: 'Testing', link: '/digging-deeper/testing' },
         ],
       },
       {

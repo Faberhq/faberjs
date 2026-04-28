@@ -1,0 +1,112 @@
+/* ── Layout width — align nav and page content ────────────── */
+:root {
+  --vp-layout-max-width: 1200px;
+}
+
+/* ── Brand tokens ─────────────────────────────────────────── */
+:root {
+  --vp-c-brand-1: #00d4ff;
+  --vp-c-brand-2: #007a99;
+  --vp-c-brand-3: #004d66;
+  --vp-c-brand-soft: rgba(0, 212, 255, 0.08);
+
+  --vp-c-indigo-1: #00d4ff;
+  --vp-c-indigo-2: #007a99;
+  --vp-c-indigo-3: rgba(0, 212, 255, 0.08);
+}
+
+/* ── Dark mode background ─────────────────────────────────── */
+.dark {
+  --vp-c-bg:         #040f1c;
+  --vp-c-bg-soft:    #081828;
+  --vp-c-bg-mute:    #0e2236;
+  --vp-c-bg-elv:     #0e2236;
+  --vp-c-divider:    #0d2a45;
+  --vp-c-text-1:     #deedf5;
+  --vp-c-text-2:     #7aabb8;
+  --vp-c-text-3:     #3a6a80;
+}
+
+/* ── Nav logo sizing ──────────────────────────────────────── */
+.VPNavBarTitle .logo {
+  height: 24px;
+  width:  24px;
+}
+
+/* ── Nav bar — dark backdrop ──────────────────────────────── */
+.dark .VPNav {
+  background-color: rgba(4, 15, 28, 0.92);
+  border-bottom: 1px solid #0d2a45;
+  backdrop-filter: blur(12px);
+}
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+.dark .VPSidebar {
+  background-color: #040f1c;
+  border-right: 1px solid #0d2a45;
+}
+
+/* ── Active sidebar link ──────────────────────────────────── */
+.dark .VPSidebarItem.is-active > .item .link .text {
+  color: #00d4ff;
+}
+
+.dark .VPSidebarItem.is-active > .item .indicator {
+  background-color: #00d4ff;
+}
+
+/* ── Code blocks ──────────────────────────────────────────── */
+.dark div[class*='language-'] {
+  background-color: #030d18 !important;
+  border: 1px solid #0d2a45;
+}
+
+/* ── Inline code ──────────────────────────────────────────── */
+.dark :not(pre) > code {
+  background-color: #081828;
+  color: #00d4ff;
+  border: 1px solid #0d2a45;
+}
+
+/* ── Tip / info callouts ──────────────────────────────────── */
+.dark .custom-block.tip {
+  background-color: rgba(0, 212, 255, 0.06);
+  border-color: rgba(0, 212, 255, 0.25);
+}
+
+/* ── Home hero headline ───────────────────────────────────── */
+.dark .VPHero .name {
+  background: linear-gradient(135deg, #deedf5 30%, #00d4ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Home hero CTA button ─────────────────────────────────── */
+.dark .VPButton.brand {
+  background-color: #00d4ff;
+  color: #040f1c;
+  border-color: #00d4ff;
+  font-weight: 600;
+}
+
+.dark .VPButton.brand:hover {
+  background-color: #33ddff;
+  border-color: #33ddff;
+}
+
+/* ── Feature cards on home page ──────────────────────────── */
+.dark .VPFeature {
+  background-color: #081828;
+  border: 1px solid #0d2a45;
+}
+
+.dark .VPFeature:hover {
+  border-color: rgba(0, 212, 255, 0.35);
+}
+
+/* ── Footer ───────────────────────────────────────────────── */
+.dark .VPFooter {
+  background-color: #040f1c;
+  border-top: 1px solid #0d2a45;
+}
