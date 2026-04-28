@@ -22,10 +22,12 @@ export interface AuthUser {
 }
 
 export interface UploadedFile {
+  readonly fieldname: string;
   readonly filename: string;
   readonly mimetype: string;
   readonly size: number;
   toBuffer(): Promise<Buffer>;
+  extension(): string;
 }
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';

@@ -9,6 +9,7 @@ export interface RequestOptions {
   readonly query?: Record<string, string | string[] | undefined>;
   readonly params?: Record<string, string>;
   readonly ip?: string;
+  readonly files?: Record<string, UploadedFile | UploadedFile[]>;
 }
 
 export class Request {
@@ -22,6 +23,7 @@ export class Request {
   readonly #query: Record<string, string | string[] | undefined>;
   #params: Record<string, string>;
   readonly #ip: string;
+  readonly #files: Record<string, UploadedFile | UploadedFile[]>;
   #validated: Record<string, unknown> | null = null;
 
   constructor(options: RequestOptions) {
@@ -33,6 +35,7 @@ export class Request {
     this.#query = options.query ?? {};
     this.#params = options.params ?? {};
     this.#ip = options.ip ?? '127.0.0.1';
+    this.#files = options.files ?? {};
   }
 
   private static normalizeHeaders(
@@ -129,8 +132,24 @@ export class Request {
     return match?.[1] ?? null;
   }
 
-  file(_key: string): UploadedFile {
-    throw new Error('File upload support requires multipart integration.');
+  file(key: string): UploadedFile | null {
+    const f = this.#files[key];
+    if (!f) return null;
+    return Array.isArray(f) ? (f[0] ?? null) : f;
+  }
+
+  files(key: string): UploadedFile[] {
+    const f = this.#files[key];
+    if (!f) return [];
+    return Array.isArray(f) ? f : [f];
+  }
+
+  allFiles(): Record<string, UploadedFile | UploadedFile[]> {
+    return { ...this.#files };
+  }
+
+  hasFile(key: string): boolean {
+    return key in this.#files;
   }
 
   isJson(): boolean {
