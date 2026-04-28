@@ -66,17 +66,76 @@ export default {
 
 ### `config/database.ts`
 
+The scaffolder generates a database config that matches the driver you chose. All four drivers are supported:
+
+**SQLite (default — fastest local dev, requires native compilation):**
+
 ```typescript
 import { env } from '@faber-js/config';
 
 export default {
-  client: env('DB_CLIENT', 'pg'),
-  connection: {
-    host: env('DB_HOST', '127.0.0.1'),
-    port: env('DB_PORT', 5432),
-    database: env('DB_DATABASE', 'my_app'),
-    user: env('DB_USER', 'postgres'),
-    password: env('DB_PASSWORD', ''),
+  default: env('DB_CONNECTION', 'better-sqlite3'),
+  connections: {
+    'better-sqlite3': {
+      client: 'better-sqlite3',
+      connection: { filename: env('DB_DATABASE', './storage/database.sqlite') },
+    },
+  },
+};
+```
+
+**SQLite WASM (pure WebAssembly — works on Termux, ARM, and edge runtimes):**
+
+```typescript
+export default {
+  default: env('DB_CONNECTION', 'sqlite-wasm'),
+  connections: {
+    'sqlite-wasm': {
+      client: 'sqlite-wasm',
+      connection: { filename: env('DB_DATABASE', './storage/database.sqlite') },
+    },
+  },
+};
+```
+
+Requires `sql.js` (`pnpm add sql.js`). No native compilation — works anywhere Node.js runs.
+
+**PostgreSQL:**
+
+```typescript
+export default {
+  default: env('DB_CONNECTION', 'pg'),
+  connections: {
+    pg: {
+      client: 'pg',
+      connection: {
+        host: env('DB_HOST', '127.0.0.1'),
+        port: env('DB_PORT', 5432),
+        database: env('DB_DATABASE', 'my_app'),
+        user: env('DB_USERNAME', 'postgres'),
+        password: env('DB_PASSWORD', ''),
+      },
+    },
+  },
+};
+```
+
+**MySQL:**
+
+```typescript
+export default {
+  default: env('DB_CONNECTION', 'mysql2'),
+  connections: {
+    mysql2: {
+      client: 'mysql2',
+      connection: {
+        host: env('DB_HOST', '127.0.0.1'),
+        port: env('DB_PORT', 3306),
+        database: env('DB_DATABASE', 'my_app'),
+        user: env('DB_USERNAME', 'root'),
+        password: env('DB_PASSWORD', ''),
+      },
+    },
   },
 };
 ```

@@ -6,7 +6,7 @@ FaberJS is scaffolded with a single command. Like Laravel's `laravel new`, `npm 
 
 - Node.js >= 20 LTS
 - pnpm (recommended) or npm
-- PostgreSQL, MySQL, or SQLite
+- A database — PostgreSQL, MySQL, or SQLite (see options below)
 
 ## Creating a new project
 
@@ -15,7 +15,16 @@ npm create faberjs@latest my-app
 cd my-app
 ```
 
-The scaffolder will prompt you for your database preference and create a fully wired project directory.
+The scaffolder will prompt you for your database driver and create a fully wired project directory.
+
+### Database driver options
+
+| Driver | Package | Notes |
+|---|---|---|
+| `sqlite` | `better-sqlite3` | Default. Fast native binary. Recommended for local dev on macOS/Linux/Windows. |
+| `sqlite-wasm` | `sql.js` | Pure WebAssembly — no native compilation. Works on **Termux**, ARM, and edge environments. |
+| `postgres` | `pg` | Recommended for production. |
+| `mysql` | `mysql2` | MySQL / MariaDB. |
 
 ## What gets scaffolded
 

@@ -220,6 +220,33 @@ npx faber make:agent Support
 # CREATED app/agents/SupportAgent.ts
 ```
 
+### `npx faber make:channel <Name>`
+
+Creates `app/channels/<Name>Channel.ts` with a `handle(socket)` stub. Register the channel in `routes/channels.ts`.
+
+```bash
+npx faber make:channel Room
+# CREATED app/channels/RoomChannel.ts
+```
+
+The generated stub:
+
+```typescript
+import { Injectable } from '@faber-js/core';
+import { Channel, Socket } from '@faber-js/channels';
+
+@Injectable()
+export class RoomChannel extends Channel {
+  async handle(socket: Socket): Promise<void> {
+    socket.on('disconnect', () => {
+      // cleanup
+    });
+  }
+}
+```
+
+See [Real-Time Channels](/digging-deeper/channels) for full usage.
+
 ### `npx faber make:view <Name>`
 
 Creates a `.view.tsx` file in `resources/views/` with the `@jsxImportSource` pragma and a typed `Props` interface. Supports nested paths.
