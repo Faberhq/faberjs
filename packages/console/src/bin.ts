@@ -181,6 +181,18 @@ program
     await showMigrationStatus(cwd);
   });
 
+// ── bridge:* commands ─────────────────────────────────────────────
+
+program
+  .command('bridge:types')
+  .description('Generate BridgePages type map from resources/pages/')
+  .option('--pages <dir>', 'Pages directory', 'resources/pages')
+  .option('--out <file>', 'Output file', 'resources/types/bridge.generated.ts')
+  .action(async (options: { pages: string; out: string }) => {
+    const { generateBridgeTypes } = await import('./commands/bridge-types');
+    await generateBridgeTypes(cwd, options.pages, options.out);
+  });
+
 // ── serve ──────────────────────────────────────────────────────────
 
 program

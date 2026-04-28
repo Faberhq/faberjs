@@ -15,8 +15,20 @@ export class Response {
     this.#headers = { ...data.headers };
   }
 
-  static json(data: unknown, status = 200): Response {
-    return new Response({ body: data, status, headers: { 'content-type': 'application/json' } });
+  static json(data: unknown, status = 200, extraHeaders: Record<string, string> = {}): Response {
+    return new Response({
+      body: data,
+      status,
+      headers: { 'content-type': 'application/json', ...extraHeaders },
+    });
+  }
+
+  static html(content: string, status = 200): Response {
+    return new Response({
+      body: content,
+      status,
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+    });
   }
 
   static noContent(): Response {

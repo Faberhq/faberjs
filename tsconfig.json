@@ -3,5 +3,6 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "include": ["packages/*/src/**/*.ts", "create-faberjs/src/**/*.ts"]
+  "include": ["packages/*/src/**/*.ts", "create-faberjs/src/**/*.ts"],
+  "exclude": ["packages/bridge-react/**/*", "packages/bridge-vue/**/*"]
 }
