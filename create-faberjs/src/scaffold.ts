@@ -6,12 +6,13 @@ export interface ScaffoldOptions {
   readonly targetDir: string;
   readonly dbDriver: 'sqlite' | 'postgres' | 'mysql';
   readonly includeAuth: boolean;
+  readonly agents: ReadonlyArray<'claude' | 'cursor' | 'copilot' | 'windsurf'>;
 }
 
 type FileMap = Record<string, string>;
 
 function buildFiles(opts: ScaffoldOptions): FileMap {
-  const { projectName, dbDriver, includeAuth } = opts;
+  const { projectName, dbDriver, includeAuth, agents } = opts;
 
   const dbConfig = buildDbConfig(dbDriver);
   const authImports = includeAuth
@@ -31,16 +32,16 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
           'migrate:rollback': 'faber db:rollback',
         },
         dependencies: {
-          '@faber-js/core': '^1.0.7',
-          '@faber-js/config': '^1.0.7',
-          '@faber-js/http': '^1.0.7',
-          '@faber-js/router': '^1.0.7',
-          '@faber-js/orm': '^1.0.7',
-          '@faber-js/queue': '^1.0.7',
-          '@faber-js/events': '^1.0.7',
-          '@faber-js/validation': '^1.0.7',
-          '@faber-js/console': '^1.0.12',
-          ...(includeAuth ? { '@faber-js/auth': '^1.0.7' } : {}),
+          '@faber-js/core': '^1.0.19',
+          '@faber-js/config': '^1.0.19',
+          '@faber-js/http': '^1.0.19',
+          '@faber-js/router': '^1.0.19',
+          '@faber-js/orm': '^1.0.19',
+          '@faber-js/queue': '^1.0.19',
+          '@faber-js/events': '^1.0.19',
+          '@faber-js/validation': '^1.0.19',
+          '@faber-js/console': '^1.0.19',
+          ...(includeAuth ? { '@faber-js/auth': '^1.0.19' } : {}),
           'reflect-metadata': '^0.2.2',
           ...dbConfig.driverDep,
         },
@@ -320,65 +321,81 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
       `};`,
     ].join('\n'),
 
-    // ── AI coding agent context files ──────────────────────────
+    // ── AI coding agent context files ──────────────────────────────────
 
-    'CLAUDE.md': buildClaudeMd(projectName),
+    ...(agents.includes('claude')
+      ? {
+          'CLAUDE.md': buildClaudeMd(projectName),
+          '.mcp.json': JSON.stringify(
+            { mcpServers: { faberjs: { command: 'npx', args: ['-y', '@faber-js/mcp'] } } },
+            null,
+            2,
+          ),
+        }
+      : {}),
 
-    '.cursorrules': buildCursorRules(),
+    ...(agents.includes('cursor')
+      ? {
+          '.cursorrules': buildCursorRules(),
+        }
+      : {}),
 
-    '.github/copilot-instructions.md': buildCopilotInstructions(),
+    ...(agents.includes('copilot')
+      ? {
+          '.github/copilot-instructions.md': buildCopilotInstructions(),
+        }
+      : {}),
 
-    '.mcp.json': JSON.stringify(
-      {
-        mcpServers: {
-          faberjs: {
-            command: 'npx',
-            args: ['-y', '@faber-js/mcp'],
-          },
-        },
-      },
-      null,
-      2,
-    ),
+    ...(agents.includes('windsurf')
+      ? {
+          '.windsurfrules': buildWindsurfRules(),
+        }
+      : {}),
 
-    // ── Claude Code skills ─────────────────────────────────────
+    // ── Claude Code skills ─────────────────────────────────────────────
 
-    '.claude/commands/make.md': [
-      `Generate a FaberJS file using the faber CLI.`,
-      ``,
-      `Usage: /make <type> <Name>`,
-      ``,
-      `Examples:`,
-      `  /make controller PostController`,
-      `  /make model Post -m`,
-      `  /make service PostService`,
-      `  /make job SendWelcomeEmail`,
-      `  /make event UserRegistered`,
-      `  /make listener SendWelcomeEmailListener`,
-      `  /make migration CreatePostsTable`,
-      ``,
-      `Run the appropriate \`npx faber make:<type> <Name>\` command based on the user's request.`,
-      `For model with -m flag, run \`npx faber make:model <Name> -m\`.`,
-      `After running, show the user which files were created.`,
-    ].join('\n'),
+    ...(agents.includes('claude')
+      ? {
+          '.claude/commands/make.md': [
+            `Generate a FaberJS file using the faber CLI.`,
+            ``,
+            `Usage: /make <type> <Name>`,
+            ``,
+            `Examples:`,
+            `  /make controller PostController`,
+            `  /make model Post -m`,
+            `  /make service PostService`,
+            `  /make job SendWelcomeEmail`,
+            `  /make event UserRegistered`,
+            `  /make listener SendWelcomeEmailListener`,
+            `  /make migration CreatePostsTable`,
+            ``,
+            `Run the appropriate \`npx faber make:<type> <Name>\` command based on the user's request.`,
+            `For model with -m flag, run \`npx faber make:model <Name> -m\`.`,
+            `After running, show the user which files were created.`,
+          ].join('\n'),
 
-    '.claude/commands/migrate.md': [
-      `Run FaberJS database migrations.`,
-      ``,
-      `Run: npx faber db:migrate`,
-      ``,
-      `Show the output. If the migration fails, read the failing migration file`,
-      `and explain what went wrong and how to fix it.`,
-    ].join('\n'),
+          '.claude/commands/migrate.md': [
+            `Run FaberJS database migrations.`,
+            ``,
+            `Run: npx faber db:migrate`,
+            ``,
+            `Show the output. If the migration fails, read the failing migration file`,
+            `and explain what went wrong and how to fix it.`,
+          ].join('\n'),
 
-    '.claude/commands/rollback.md': [
-      `Rollback the last batch of FaberJS database migrations.`,
-      ``,
-      `Before running, confirm with the user that they want to rollback.`,
-      `Then run: npx faber db:rollback`,
-      ``,
-      `Show the output and list which migrations were rolled back.`,
-    ].join('\n'),
+          '.claude/commands/rollback.md': [
+            `Rollback the last batch of FaberJS database migrations.`,
+            ``,
+            `Before running, confirm with the user that they want to rollback.`,
+            `Then run: npx faber db:rollback`,
+            ``,
+            `Show the output and list which migrations were rolled back.`,
+          ].join('\n'),
+
+          '.claude/commands/conventions.md': buildConventionsMd(),
+        }
+      : {}),
   };
 }
 
@@ -762,6 +779,395 @@ await event(new UserRegistered(user));
 ## CLI
 npx faber make:controller|model|service|job|event|listener|migration
 npx faber db:migrate | db:rollback | serve | route:list
+`;
+}
+
+function buildWindsurfRules(): string {
+  return `# FaberJS Windsurf Rules
+
+You are working in a FaberJS project — a Laravel-inspired Node.js/TypeScript backend framework.
+
+## Core Rules
+
+- Framework flow: Route → Controller → Service → Model → Job/Event
+- Never import from fastify or knex — all code uses @faber-js/* packages
+- Never instantiate services manually — always use constructor injection
+- Controllers extend Controller and need @Injectable()
+- Services extend Service and need @Injectable()
+- Models extend Model — no decorator needed
+- Jobs extend Job, implement async handle()
+- Events extend Event, Listeners extend Listener with @ListenFor(EventClass)
+
+## Key APIs
+
+Routing: Route.get/post/put/patch/delete(path, [Controller, 'method'])
+Groups: Route.group({ prefix, middleware }, () => { ... })
+Request: req.route(param), req.query(key), req.input(key), req.validated(), req.user<T>()
+Response: this.json(data, status?), this.noContent()
+ORM: Model.all(), Model.find(id), Model.where(col, val).with(rel).paginate(page, per)
+Dispatch: await dispatch(new MyJob(data))
+Events: await event(new MyEvent(data))
+Auth: Route.middleware('auth').group(...), req.user<T>(), this.authorize('ability', model)
+Validation: class MyRequest extends FormRequest { rules() { return { field: 'required|string' } } }
+
+## CLI
+
+npx faber make:controller|model|service|job|event|listener|migration|provider|command|agent
+npx faber db:migrate | db:rollback | db:status
+npx faber serve | route:list | tinker
+
+## File Locations
+
+Controllers: app/controllers/
+Models: app/models/
+Services: app/services/
+Jobs: app/jobs/
+Events: app/events/
+Listeners: app/listeners/
+Migrations: database/migrations/
+Routes: routes/api.ts
+Bootstrap: bootstrap/app.ts
+`;
+}
+
+function buildConventionsMd(): string {
+  return `Review the specified file(s) or recent changes for compliance with FaberJS conventions, then list concrete improvements.
+
+---
+
+# FaberJS Coding Conventions
+
+Adapted from battle-tested Laravel conventions for the TypeScript/Node.js ecosystem.
+
+## Project Structure
+
+For large projects (>100 Models), organise by module:
+
+\`\`\`
+src/
+  Modules/
+    Course/
+      Actions/
+      Console/Commands/
+      Events/
+      Exceptions/
+      Http/
+        Controllers/           ← Request classes live here too
+      Jobs/
+      Listeners/
+      Models/
+      Policies/
+      Providers/
+    User/
+    ...
+\`\`\`
+
+Modules communicate via:
+- Constructor injection using **interfaces** from other modules (never import a concrete class from a sibling module)
+- Events and Listeners (\`event(new CourseEnrolled(user, course))\`)
+
+## Models & ORM
+
+1. Prefer \`Model.query()\` over direct static shorthand:
+
+   \`\`\`typescript
+   // GOOD
+   User.query().where('active', true).first();
+
+   // AVOID
+   User.where('active', true).first();
+   \`\`\`
+
+2. Avoid mass assignment — assign fields individually when possible:
+
+   \`\`\`typescript
+   // PREFERRED
+   const user = new User();
+   user.name  = req.input('name');
+   user.email = req.input('email');
+
+   // ACCEPTABLE — only when all fields are validated
+   await User.create(req.validated());
+
+   // NEVER
+   await User.create(req.all());
+   \`\`\`
+
+3. Always define \`table\`, \`fillable\`, \`hidden\` explicitly:
+
+   \`\`\`typescript
+   export class User extends Model {
+     static table    = 'users';
+     static fillable = ['name', 'email'];
+     static hidden   = ['password'];
+   }
+   \`\`\`
+
+4. Write \`down()\` in every migration:
+
+   \`\`\`typescript
+   export default class CreatePostsTable extends Migration {
+     async up():   Promise<void> { await Schema.create('posts',      (t) => { ... }); }
+     async down(): Promise<void> { await Schema.dropIfExists('posts'); }
+   }
+   \`\`\`
+
+5. Eager-load relationships to avoid N+1 queries:
+
+   \`\`\`typescript
+   // GOOD
+   const posts = await Post.query().with('author', 'tags').get();
+
+   // BAD — N+1 inside the loop
+   const posts = await Post.all();
+   for (const post of posts) {
+     const author = await post.author(); // ❌ N+1
+   }
+   \`\`\`
+
+6. Chunk large datasets:
+
+   \`\`\`typescript
+   await User.query().chunk(200, async (users) => {
+     for (const user of users) { await process(user); }
+   });
+   \`\`\`
+
+## Console Commands
+
+1. Kebab-case signatures:
+
+   \`\`\`typescript
+   static signature = 'records:prune-old';  // ✓
+   static signature = 'records:pruneOld';   // ✗
+   \`\`\`
+
+2. Inject dependencies into \`handle()\`, not the constructor — all commands are instantiated on every CLI call:
+
+   \`\`\`typescript
+   async handle(pruner: RecordPruner): Promise<void> {
+     await pruner.execute();
+     this.success(\`Pruned \${count} records.\`);
+   }
+   \`\`\`
+
+3. Exit non-zero on failure:
+
+   \`\`\`typescript
+   async handle(): Promise<void> {
+     try {
+       await this.doWork();
+     } catch (err) {
+       this.error(err instanceof Error ? err.message : String(err));
+       process.exit(1);
+     }
+   }
+   \`\`\`
+
+## Controllers
+
+1. Prefer single-action controllers for complex or non-CRUD actions:
+
+   \`\`\`typescript
+   @Injectable()
+   export class PublishPostController extends Controller {
+     async __invoke(req: Request): Promise<Response> { ... }
+   }
+   \`\`\`
+
+2. Controllers MUST NOT extend any class other than \`Controller\`.
+
+3. Use singular resource names:
+
+   \`\`\`typescript
+   export class CourseController  extends Controller { }  // ✓
+   export class CoursesController extends Controller { }  // ✗
+   \`\`\`
+
+4. Stick to default CRUD names: \`index\`, \`store\`, \`show\`, \`update\`, \`destroy\`.
+
+5. Keep controllers thin — extract business logic into **Action classes**:
+
+   \`\`\`typescript
+   @Injectable()
+   export class DetachTeamMemberController extends Controller {
+     async __invoke(req: Request, action: DetachTeamMemberAction): Promise<Response> {
+       await this.authorize('update', team);
+       await action.execute(team, member);
+       return this.json({ success: true });
+     }
+   }
+
+   // Action: no base class, one public method
+   export class DetachTeamMemberAction {
+     async execute(team: Team, member: Member): Promise<void> {
+       // all business logic lives here
+     }
+   }
+   \`\`\`
+
+## Routes
+
+1. Kebab-case URL segments, camelCase parameters:
+
+   \`\`\`typescript
+   Route.get('/course-enrollments/:enrollmentId', ...);
+   Route.get('/user-profiles/:userId', ...);
+   \`\`\`
+
+2. Define routes explicitly — avoid \`Route.resource()\` unless you need all seven actions:
+
+   \`\`\`typescript
+   // PREFERRED — easy to grep, no hidden routes
+   Route.get('/posts',     [PostController, 'index']);
+   Route.post('/posts',    [PostController, 'store']);
+   Route.get('/posts/:id', [PostController, 'show']);
+   \`\`\`
+
+3. Always name routes, use the name for redirects/links:
+
+   \`\`\`typescript
+   Route.get('/about', AboutController).name('about.index');
+   \`\`\`
+
+4. HTTP verb comes first:
+
+   \`\`\`typescript
+   Route.get('/home', HomeController).name('home');   // ✓
+   Route.name('home').get('/home', HomeController);   // ✗
+   \`\`\`
+
+5. Version your API under a prefix group:
+
+   \`\`\`typescript
+   Route.group({ prefix: '/api/v1' }, () => {
+     Route.get('/articles', [ArticleController, 'index']);
+   });
+   \`\`\`
+
+## Validation
+
+1. Array notation only — never pipe strings:
+
+   \`\`\`typescript
+   rules() {
+     return {
+       email: ['required', 'email'],          // ✓
+       name:  ['required', 'string', 'min:2'], // ✓
+       // email: 'required|email',             // ✗
+     };
+   }
+   \`\`\`
+
+2. Use FormRequest for controller input:
+
+   \`\`\`typescript
+   export class CreatePostRequest extends FormRequest {
+     rules() {
+       return { title: ['required', 'string', 'max:255'], body: ['required', 'string'] };
+     }
+   }
+   \`\`\`
+
+3. Never pass raw request data to a model:
+
+   \`\`\`typescript
+   await Post.create(req.validated()); // ✓ — validated, safe
+   await Post.create(req.all());       // ✗ — never
+   \`\`\`
+
+## Jobs
+
+Jobs must be:
+
+- **Reentrant** — safely restartable if interrupted mid-run
+- **Idempotent** — running twice produces the same result as running once
+- **Concurrent-safe** — multiple instances can run in parallel (or implement \`ShouldBeUnique\`)
+- **Order-independent** — doesn't assume another job completed first (or use \`Bus.chain()\`)
+
+Always use the \`dispatch()\` global:
+
+\`\`\`typescript
+await dispatch(new SendWelcomeEmail(user)); // ✓ — respects ShouldBeUnique
+\`\`\`
+
+## Events & Listeners
+
+1. Keep Event classes minimal and immutable:
+
+   \`\`\`typescript
+   export class UserRegistered extends Event {
+     constructor(
+       public readonly user:       User,
+       public readonly registeredAt: Date,
+     ) { super(); }
+   }
+   \`\`\`
+
+2. Use the \`event()\` global — not a static dispatch helper:
+
+   \`\`\`typescript
+   await event(new UserRegistered(user, new Date())); // ✓
+   \`\`\`
+
+3. Wire listeners with \`@ListenFor\`:
+
+   \`\`\`typescript
+   @ListenFor(UserRegistered)
+   export class SendWelcomeEmailListener extends Listener {
+     async handle(e: UserRegistered): Promise<void> {
+       await dispatch(new SendWelcomeEmail(e.user));
+     }
+   }
+   \`\`\`
+
+## Security
+
+### SQL Injection
+
+Never pass user-controlled values as column names:
+
+\`\`\`typescript
+// VULNERABLE
+await Post.query().orderBy(req.input('sort')).get(); // ❌
+
+// SAFE — whitelist
+const ALLOWED_SORTS = ['title', 'created_at', 'views'] as const;
+const col = ALLOWED_SORTS.includes(req.input('sort')) ? req.input('sort') : 'created_at';
+await Post.query().orderBy(col).get();
+\`\`\`
+
+Never interpolate user input into raw queries:
+
+\`\`\`typescript
+// SAFE
+await db.raw('SELECT * FROM posts WHERE slug = ?', [slug]);
+
+// DANGEROUS
+await db.raw(\`SELECT * FROM posts WHERE slug = '\${slug}'\`); // ❌
+\`\`\`
+
+### Mass Assignment
+
+\`\`\`typescript
+await User.create(req.validated()); // ✓
+await User.create(req.all());       // ❌ — attacker can set any column
+await user.fill(req.all());         // ❌
+\`\`\`
+
+## Quick Reference
+
+| ❌ Anti-pattern | ✅ Convention |
+|---|---|
+| \`import ... from 'fastify'\` | Use \`@faber-js/http\` / \`@faber-js/router\` |
+| \`import ... from 'knex'\` | Use \`@faber-js/orm\` |
+| \`new UserService()\` | Constructor injection |
+| \`req.all()\` into model | \`req.validated()\` only |
+| \`@Injectable()\` on Model | Only on Controller, Service |
+| \`'required|email'\` rule | \`['required', 'email']\` array |
+| Fat controller methods | Controller → Action class |
+| \`event()\` from \`EventClass.dispatch()\` | \`event(new EventClass())\` global |
+| \`JobClass.dispatch()\` | \`dispatch(new JobClass())\` global |
 `;
 }
 

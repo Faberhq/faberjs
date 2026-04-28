@@ -62,6 +62,17 @@ async function promptChoice<T extends string>(
   });
 }
 
+type Agent = 'claude' | 'cursor' | 'copilot' | 'windsurf';
+const VALID_AGENTS: Agent[] = ['claude', 'cursor', 'copilot', 'windsurf'];
+
+function parseAgents(input: string): Agent[] {
+  if (input.trim().toLowerCase() === 'none') return [];
+  return input
+    .split(',')
+    .map((s) => s.trim().toLowerCase() as Agent)
+    .filter((s): s is Agent => VALID_AGENTS.includes(s));
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
@@ -79,8 +90,16 @@ async function main(): Promise<void> {
   const authRaw = await prompt('Include auth scaffolding? (y/n)', 'y');
   const includeAuth = authRaw.toLowerCase() !== 'n';
 
+  // Ask which coding agents to support
+  process.stdout.write('\n');
+  const agentInput = await prompt(
+    `Coding agent support ${pc.dim('[claude/cursor/copilot/windsurf/none]')}`,
+    'claude',
+  );
+  const agents = parseAgents(agentInput);
+
   const targetDir = path.resolve(process.cwd(), projectName);
-  const opts: ScaffoldOptions = { projectName, targetDir, dbDriver, includeAuth };
+  const opts: ScaffoldOptions = { projectName, targetDir, dbDriver, includeAuth, agents };
 
   process.stdout.write(
     `\n  ${pc.dim('Scaffolding')} ${pc.bold(pc.cyan(projectName))}${pc.dim('...')}\n\n`,
