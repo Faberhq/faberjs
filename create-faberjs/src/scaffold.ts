@@ -809,11 +809,108 @@ export class SupportAgent extends Agent {
 }
 \`\`\`
 
+### Cache (@faber-js/cache)
+
+\`\`\`typescript
+import { Cache, RateLimiter } from '@faber-js/cache';
+
+await Cache.put('key', value, 300);
+const val = await Cache.get('key');
+const user = await Cache.remember('user:1', 300, () => User.find(1));
+
+const lock = Cache.lock('process:invoice', 10);
+if (await lock.get()) {
+  try { await processInvoice(); } finally { await lock.release(); }
+}
+
+await RateLimiter.attempt('send-email:' + userId, 5, async () => {
+  await sendEmail();
+});
+\`\`\`
+
+### Mail (@faber-js/mail)
+
+\`\`\`typescript
+import { Mail, Mailable } from '@faber-js/mail';
+
+export class WelcomeMail extends Mailable {
+  constructor(private user: User) { super(); }
+  build(): void {
+    this.to(this.user.email).subject('Welcome!').html('<h1>Hello!</h1>');
+  }
+}
+
+await Mail.send(new WelcomeMail(user));
+await Mail.to(user.email).send(new WelcomeMail(user));
+
+const fake = Mail.fake();
+fake.assertSent(WelcomeMail);
+Mail.restore();
+\`\`\`
+
+### HTTP Client (@faber-js/http-client)
+
+\`\`\`typescript
+import { Http } from '@faber-js/http-client';
+
+const res = await Http.withToken(token).retry(3, 500).post(url, { title, body });
+if (res.failed()) res.throw();
+const data = res.json<Post>();
+
+const fake = Http.fake({ 'https://api.example.com/*': { status: 200, body: { id: 1 } } });
+fake.assertSent('https://api.example.com/posts');
+\`\`\`
+
+### Encryption & Hashing (@faber-js/crypt)
+
+\`\`\`typescript
+import { Hash, Crypt } from '@faber-js/crypt';
+import { URL as FaberURL, SignedMiddleware } from '@faber-js/router';
+
+const hashed = await Hash.make(password);
+const valid = await Hash.check(password, hashed);
+
+const encrypted = Crypt.encryptString(value);
+const plain = Crypt.decryptString(encrypted);
+
+const url = FaberURL.signedRoute('invoice.download', { id: 42 });
+const tempUrl = FaberURL.temporarySignedRoute('download', 3600, { id: 42 });
+\`\`\`
+
+### Collections & Support (@faber-js/support)
+
+\`\`\`typescript
+import { collect, Str } from '@faber-js/support';
+
+const total = collect(orders).filter(o => o.paid).sum(o => o.amount);
+collect(users).groupBy(u => u.role);
+
+Str.camel('hello_world')   // 'helloWorld'
+Str.slug('Hello World')    // 'hello-world'
+Str.uuid()                 // 'xxxxxxxx-xxxx-...'
+Str.of('hello_world').camel().limit(20).toString()
+\`\`\`
+
+### Password Reset (@faber-js/auth)
+
+\`\`\`typescript
+import { Password } from '@faber-js/auth';
+
+const status = await Password.sendResetLink({ email });
+// Password.RESET_LINK_SENT or Password.INVALID_USER
+
+const status = await Password.reset({ email, token, password }, async (user, newPw) => {
+  await user.update({ password: await Hash.make(newPw) });
+});
+// Password.PASSWORD_RESET or Password.INVALID_TOKEN
+\`\`\`
+
 ## CLI Commands
 
 \`\`\`bash
+npx faber key:generate               # generate APP_KEY and write to .env
 npx faber make:controller PostController
-npx faber make:model Post -m          # -m creates migration too
+npx faber make:model Post -m         # -m also creates a migration
 npx faber make:service PostService
 npx faber make:job SendWelcomeEmail
 npx faber make:event UserRegistered
@@ -823,12 +920,28 @@ npx faber make:schema Post
 npx faber make:channel Chat
 npx faber make:agent Support
 npx faber make:view Post/Show
+npx faber make:mail WelcomeMail
+npx faber make:policy PostPolicy
 npx faber make:provider App
 npx faber make:command records:prune
 npx faber db:migrate
 npx faber db:rollback
+npx faber db:status
 npx faber serve
 npx faber route:list
+npx faber tinker
+\`\`\`
+
+## Environment Variables
+
+\`\`\`
+APP_KEY=base64:...          # run: npx faber key:generate
+APP_URL=http://localhost:3000
+CACHE_DRIVER=memory         # memory | redis | database
+REDIS_HOST=127.0.0.1
+MAIL_HOST=smtp.mailtrap.io
+MAIL_PORT=587
+MAIL_FROM_ADDRESS=hello@example.com
 \`\`\`
 
 ## Anti-Patterns
@@ -838,6 +951,8 @@ npx faber route:list
 - NEVER skip \`reflect-metadata\` import in bootstrap/app.ts
 - NEVER use \`req.body\` directly — use \`req.validated()\` or \`req.input()\`
 - NEVER write \`@Injectable()\` on Model subclasses — Controllers and Services both need it
+- NEVER store plaintext passwords — always use \`Hash.make()\`
+- NEVER commit APP_KEY or MAIL_PASSWORD to version control
 `;
 }
 
@@ -872,11 +987,18 @@ Events: await event(new MyEvent(data))
 Auth: Route.middleware('auth').group(...), req.user<T>(), this.authorize('ability', model)
 Validation: class MyRequest extends FormRequest { rules() { return { field: 'required|string' } } }
 Adapters: createAdapter() auto-selects Node/Bun/Lambda/Cloudflare adapter
+Cache: Cache.get/put/remember/lock from @faber-js/cache; RateLimiter.attempt(key, max, cb)
+Mail: Mail.to(email).send(new MyMail()) — Mail.fake() in tests
+HTTP Client: Http.get/post/withToken(t).retry(3,500).fake({}) from @faber-js/http-client
+Encryption: Hash.make/check from @faber-js/crypt; Crypt.encryptString/decryptString
+Support: collect(arr).filter().sum(); Str.camel/snake/slug/uuid() from @faber-js/support
+Password Reset: Password.sendResetLink({ email }); Password.reset({ email, token, password }, cb)
 
 ## CLI
 
-npx faber make:controller|model|service|job|event|listener|migration|provider|command|agent|schema|channel|view
-npx faber db:migrate | db:rollback | db:status
+npx faber key:generate
+npx faber make:controller|model|service|job|event|listener|migration|provider|command|agent|schema|channel|view|mail|policy
+npx faber db:migrate | db:rollback | db:seed | db:status
 npx faber serve | route:list | tinker
 
 ## File Locations
@@ -889,11 +1011,20 @@ Events: app/events/
 Listeners: app/listeners/
 Agents: app/agents/
 Channels: app/channels/
+Mail: app/mail/
+Policies: app/policies/
 Migrations: database/migrations/
 Views: resources/views/
 Schema: schema/
 Routes: routes/api.ts
 Bootstrap: bootstrap/app.ts
+
+## Anti-Patterns
+
+- NEVER import from fastify or knex directly
+- NEVER skip @Injectable() on Controllers/Services
+- NEVER use plaintext passwords — Hash.make()
+- NEVER commit APP_KEY or secrets to version control
 `;
 }
 
@@ -945,18 +1076,56 @@ await dispatch(new SendWelcomeEmail(user));
 // Event
 await event(new UserRegistered(user));
 
+// Cache
+import { Cache } from '@faber-js/cache';
+const users = await Cache.remember('users', 3600, () => User.all());
+await Cache.put('key', value, 60);
+const val = await Cache.get('key', defaultVal);
+
+// Mail
+import { Mail } from '@faber-js/mail';
+await Mail.to(user.email).send(new WelcomeMail(user));
+const fake = Mail.fake();
+fake.assertSent(WelcomeMail);
+Mail.restore();
+
+// HTTP Client
+import { Http } from '@faber-js/http-client';
+const res = await Http.withToken(token).retry(3, 500).get(url);
+if (res.failed()) res.throw();
+const data = res.json<Post>();
+
+// Hashing & Encryption
+import { Hash, Crypt } from '@faber-js/crypt';
+const hash = await Hash.make(password);
+const valid = await Hash.check(password, hash);
+const encrypted = Crypt.encryptString(secret);
+
+// Collections & Strings
+import { collect, Str } from '@faber-js/support';
+const total = collect(orders).filter(o => o.paid).sum(o => o.amount);
+const slug = Str.slug('Hello World');
+
+// Password Reset
+import { Password } from '@faber-js/auth';
+await Password.sendResetLink({ email });
+await Password.reset({ email, token, password }, async (user, newPw) => {
+  await user.update({ password: await Hash.make(newPw) });
+});
+
 // AI Agent
 @Injectable()
 export class SupportAgent extends Agent {
   override model = 'claude-sonnet-4-6';
   @Tool({ description: 'Look up user' })
-  async lookupUser(input: { id: number }): Promise<string> { ... }
+  async lookupUser(input: { id: number }): Promise<string> { return ''; }
 }
 \`\`\`
 
 ## CLI
-npx faber make:controller|model|service|job|event|listener|migration|schema|channel|agent|view
-npx faber db:migrate | db:rollback | db:status | serve | route:list
+npx faber key:generate
+npx faber make:controller|model|service|job|event|listener|migration|schema|channel|agent|view|mail|policy
+npx faber db:migrate | db:rollback | db:seed | db:status | serve | route:list | tinker
 `;
 }
 
@@ -977,6 +1146,8 @@ You are working in a FaberJS project — a Laravel-inspired Node.js/TypeScript b
 - Events extend Event, Listeners extend Listener with @ListenFor(EventClass)
 - AI agents extend Agent, use @Tool() decorator on tool methods
 - WebSocket channels extend Channel, receive a Socket argument in handle()
+- Mailables extend Mailable, sent with Mail.to(email).send(new MyMail())
+- Policies extend Policy, checked with this.authorize('action', model)
 
 ## Key APIs
 
@@ -991,11 +1162,19 @@ Events: await event(new MyEvent(data))
 Auth: Route.middleware('auth').group(...), req.user<T>(), this.authorize('ability', model)
 Validation: class MyRequest extends FormRequest { rules() { return { field: 'required|string' } } }
 Adapters: createAdapter() auto-selects Node/Bun/Lambda/Cloudflare adapter
+Cache: Cache.get/put/remember/lock from @faber-js/cache; RateLimiter.attempt(key, max, cb)
+Mail: Mail.to(email).send(new MyMail()); Mail.fake() in tests; Mail.restore() after
+HTTP Client: Http.get/post/withToken(t).retry(3,500).fake({}) from @faber-js/http-client
+Encryption: Hash.make/check from @faber-js/crypt; Crypt.encryptString/decryptString
+Signed URLs: URL.signedRoute(name, params); URL.temporarySignedRoute(name, ttl, params)
+Support: collect(arr).filter().sum(); Str.camel/snake/slug/uuid(); Str.of(s).chain()
+Password Reset: Password.sendResetLink({ email }); Password.reset({ email, token, password }, cb)
 
 ## CLI
 
-npx faber make:controller|model|service|job|event|listener|migration|provider|command|agent|schema|channel|view
-npx faber db:migrate | db:rollback | db:status
+npx faber key:generate
+npx faber make:controller|model|service|job|event|listener|migration|provider|command|agent|schema|channel|view|mail|policy
+npx faber db:migrate | db:rollback | db:seed | db:status
 npx faber serve | route:list | tinker
 
 ## File Locations
@@ -1008,11 +1187,21 @@ Events: app/events/
 Listeners: app/listeners/
 Agents: app/agents/
 Channels: app/channels/
+Mail: app/mail/
+Policies: app/policies/
 Migrations: database/migrations/
 Views: resources/views/
 Schema: schema/
 Routes: routes/api.ts
 Bootstrap: bootstrap/app.ts
+
+## Anti-Patterns
+
+- NEVER import from fastify or knex directly
+- NEVER skip @Injectable() on Controllers/Services
+- NEVER use plaintext passwords — always Hash.make()
+- NEVER commit APP_KEY, MAIL_PASSWORD, or DB credentials to git
+- NEVER use req.body directly — use req.input() or req.validated()
 `;
 }
 

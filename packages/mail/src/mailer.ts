@@ -68,7 +68,7 @@ export class Mailer {
     try {
       nodemailer = await import('nodemailer');
     } catch {
-      throw new Error('nodemailer is not installed. Run: npm install nodemailer');
+      throw new Error('nodemailer is not installed. Run: pnpm add nodemailer');
     }
 
     const auth =
