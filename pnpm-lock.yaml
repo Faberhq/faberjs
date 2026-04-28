@@ -182,6 +182,37 @@ importers:
         specifier: ^0.2.0
         version: 0.2.2
 
+  packages/devtools:
+    dependencies:
+      '@faber-js/core':
+        specifier: workspace:^
+        version: link:../core
+      '@faber-js/http':
+        specifier: workspace:^
+        version: link:../http
+      '@faber-js/router':
+        specifier: workspace:^
+        version: link:../router
+      reflect-metadata:
+        specifier: ^0.2.0
+        version: 0.2.2
+    devDependencies:
+      '@faber-js/events':
+        specifier: workspace:^
+        version: link:../events
+      '@faber-js/orm':
+        specifier: workspace:^
+        version: link:../orm
+      '@types/better-sqlite3':
+        specifier: ^7.6.8
+        version: 7.6.13
+      better-sqlite3:
+        specifier: ^9.4.0
+        version: 9.6.0
+      knex:
+        specifier: ^3.1.0
+        version: 3.2.9(better-sqlite3@9.6.0)
+
   packages/events:
     dependencies:
       '@faber-js/core':

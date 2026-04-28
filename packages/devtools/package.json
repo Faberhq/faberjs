@@ -1,0 +1,47 @@
+{
+  "name": "@faber-js/devtools",
+  "version": "1.0.24",
+  "description": "FaberJS dev observability dashboard — zero-config request, query, and event tracing",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "keywords": [
+    "faberjs",
+    "framework",
+    "devtools",
+    "observability",
+    "dashboard"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@faber-js/core": "workspace:^",
+    "@faber-js/http": "workspace:^",
+    "@faber-js/router": "workspace:^",
+    "reflect-metadata": "^0.2.0"
+  },
+  "devDependencies": {
+    "@faber-js/orm": "workspace:^",
+    "@faber-js/events": "workspace:^",
+    "better-sqlite3": "^9.4.0",
+    "@types/better-sqlite3": "^7.6.8",
+    "knex": "^3.1.0"
+  }
+}
