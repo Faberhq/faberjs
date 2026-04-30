@@ -7,6 +7,7 @@ export interface ScaffoldOptions {
   readonly targetDir: string;
   readonly dbDriver: 'sqlite' | 'sqlite-wasm' | 'postgres' | 'mysql';
   readonly includeAuth: boolean;
+  readonly frontend: 'none' | 'tsx' | 'ejs' | 'react' | 'vue';
   readonly agents?: ReadonlyArray<'claude' | 'cursor' | 'copilot' | 'windsurf'>;
 }
 
@@ -19,14 +20,80 @@ function generateAppKey(): string {
 }
 
 function buildFiles(opts: ScaffoldOptions): FileMap {
-  const { projectName, dbDriver, includeAuth, agents = [] } = opts;
+  const { projectName, dbDriver, includeAuth, frontend, agents = [] } = opts;
 
   const dbConfig = buildDbConfig(dbDriver);
   const appKey = generateAppKey();
+
   const authImports = includeAuth
     ? `\nimport { AuthServiceProvider } from '../app/providers/AuthServiceProvider';`
     : '';
   const authProvider = includeAuth ? `  app.register(new AuthServiceProvider(app));` : '';
+
+  const viewImport =
+    frontend === 'tsx' || frontend === 'ejs'
+      ? `\nimport { ViewServiceProvider } from '@faber-js/view';`
+      : '';
+  const viewProvider =
+    frontend === 'tsx' || frontend === 'ejs' ? `  app.register(new ViewServiceProvider(app));` : '';
+
+  const bridgeImport =
+    frontend === 'react' || frontend === 'vue'
+      ? `\nimport { BridgeServiceProvider } from '@faber-js/bridge';`
+      : '';
+  const bridgeProvider =
+    frontend === 'react' || frontend === 'vue'
+      ? `  app.register(new BridgeServiceProvider(app));`
+      : '';
+
+  const hasWebRoutes = frontend !== 'none';
+  const loadWebRoutes = hasWebRoutes ? `  require('../routes/web');` : '';
+
+  const frontendDeps: Record<string, string> = (() => {
+    if (frontend === 'tsx') return { '@faber-js/view': '^1.2.2' };
+    if (frontend === 'ejs') return { '@faber-js/view': '^1.2.2', ejs: '^3.1.10' };
+    if (frontend === 'react')
+      return {
+        '@faber-js/bridge': '^1.2.2',
+        '@faber-js/bridge-react': '^1.2.2',
+        react: '^18.3.0',
+        'react-dom': '^18.3.0',
+      };
+    if (frontend === 'vue')
+      return {
+        '@faber-js/bridge': '^1.2.2',
+        '@faber-js/bridge-vue': '^1.2.2',
+        vue: '^3.5.0',
+      };
+    return {};
+  })();
+
+  const frontendDevDeps: Record<string, string> = (() => {
+    if (frontend === 'react')
+      return {
+        vite: '^6.0.0',
+        '@vitejs/plugin-react': '^4.3.0',
+        '@types/react': '^18.3.0',
+        '@types/react-dom': '^18.3.0',
+      };
+    if (frontend === 'vue') return { vite: '^6.0.0', '@vitejs/plugin-vue': '^5.2.0' };
+    return {};
+  })();
+
+  const frontendScripts: Record<string, string> =
+    frontend === 'react' || frontend === 'vue'
+      ? { 'dev:frontend': 'vite', 'build:frontend': 'vite build' }
+      : {};
+
+  // tsconfig JSX settings — only for tsx/react frontends (IDE type-checking support)
+  const tsxCompilerOptions =
+    frontend === 'tsx'
+      ? { jsx: 'react-jsx', jsxImportSource: '@faber-js/view' }
+      : frontend === 'react'
+        ? { jsx: 'react-jsx', jsxImportSource: 'react' }
+        : {};
+  const tsInclude =
+    frontend === 'tsx' || frontend === 'react' ? ['**/*.ts', '**/*.tsx'] : ['**/*.ts'];
 
   return {
     'package.json': JSON.stringify(
@@ -38,6 +105,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
           dev: 'faber serve',
           migrate: 'faber db:migrate',
           'migrate:rollback': 'faber db:rollback',
+          ...frontendScripts,
         },
         dependencies: {
           '@faber-js/core': '^1.1.0',
@@ -55,6 +123,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
           '@faber-js/http-client': '^1.1.0',
           '@faber-js/mail': '^1.1.0',
           ...(includeAuth ? { '@faber-js/auth': '^1.1.0' } : {}),
+          ...frontendDeps,
           'reflect-metadata': '^0.2.2',
           ...dbConfig.driverDep,
         },
@@ -62,6 +131,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
           typescript: '^5.8.3',
           'ts-node': '^10.9.0',
           '@types/node': '^20.19.0',
+          ...frontendDevDeps,
         },
       },
       null,
@@ -86,8 +156,9 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
           declaration: true,
           declarationMap: true,
           sourceMap: true,
+          ...tsxCompilerOptions,
         },
-        include: ['**/*.ts'],
+        include: tsInclude,
         exclude: ['node_modules', 'dist'],
       },
       null,
@@ -116,7 +187,10 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
       'MAIL_USERNAME=',
       'MAIL_PASSWORD=',
       'MAIL_FROM_ADDRESS=hello@example.com',
-      'MAIL_FROM_NAME="${projectName}"',
+      `MAIL_FROM_NAME="${projectName}"`,
+      ...(frontend === 'tsx' || frontend === 'ejs'
+        ? ['', '# View', `VIEW_DRIVER=${frontend}`]
+        : []),
     ].join('\n'),
 
     '.env.example': [
@@ -142,6 +216,9 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
       'MAIL_PASSWORD=',
       'MAIL_FROM_ADDRESS=hello@example.com',
       'MAIL_FROM_NAME=App',
+      ...(frontend === 'tsx' || frontend === 'ejs'
+        ? ['', '# View', `VIEW_DRIVER=${frontend}`]
+        : []),
     ].join('\n'),
 
     '.gitignore': ['node_modules', 'dist', '.env', '*.tsbuildinfo', 'storage/'].join('\n'),
@@ -163,6 +240,8 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
       `import { CacheServiceProvider } from '@faber-js/cache';`,
       `import { MailServiceProvider } from '@faber-js/mail';`,
       authImports,
+      viewImport,
+      bridgeImport,
       ``,
       `void (async () => {`,
       `  const app = new Application();`,
@@ -174,11 +253,14 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
       `  app.register(new CacheServiceProvider(app));`,
       `  app.register(new MailServiceProvider(app));`,
       ...(authProvider ? [authProvider] : []),
+      ...(viewProvider ? [viewProvider] : []),
+      ...(bridgeProvider ? [bridgeProvider] : []),
       ``,
       `  await app.boot();`,
       ``,
       `  // Load routes`,
       `  require('../routes/api');`,
+      ...(loadWebRoutes ? [loadWebRoutes] : []),
       ``,
       `  const kernel = app.make<HttpKernel>('http.kernel');`,
       `  const port = Number(process.env['APP_PORT'] ?? 3000);`,
@@ -203,6 +285,45 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
       `  Route.delete('/users/:id', [UserController, 'destroy']);`,
       `});`,
     ].join('\n'),
+
+    // ── Frontend / view engine files ───────────────────────────────────
+
+    ...(hasWebRoutes
+      ? {
+          'routes/web.ts': buildWebRoutes(),
+          'app/controllers/WelcomeController.ts': buildWelcomeController(projectName, frontend),
+        }
+      : {}),
+
+    ...(frontend === 'tsx'
+      ? {
+          'resources/views/welcome.view.tsx': buildTsxWelcomeView(),
+        }
+      : {}),
+
+    ...(frontend === 'ejs'
+      ? {
+          'resources/views/welcome.view.ejs': buildEjsWelcomeView(),
+        }
+      : {}),
+
+    ...(frontend === 'react'
+      ? {
+          'vite.config.ts': buildViteConfig('react'),
+          'resources/js/app.tsx': buildReactEntry(),
+          'resources/js/pages/Welcome.tsx': buildReactWelcomePage(),
+          'resources/views/app.html': buildBridgeHtml('react'),
+        }
+      : {}),
+
+    ...(frontend === 'vue'
+      ? {
+          'vite.config.ts': buildViteConfig('vue'),
+          'resources/js/app.ts': buildVueEntry(),
+          'resources/js/pages/Welcome.vue': buildVueWelcomePage(),
+          'resources/views/app.html': buildBridgeHtml('vue'),
+        }
+      : {}),
 
     'app/controllers/UserController.ts': [
       `import { Injectable } from '@faber-js/core';`,
@@ -472,6 +593,188 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
         }
       : {}),
   };
+}
+
+function buildWebRoutes(): string {
+  return [
+    `import { Route } from '@faber-js/router';`,
+    `import { WelcomeController } from '../app/controllers/WelcomeController';`,
+    ``,
+    `Route.get('/', [WelcomeController, 'index']);`,
+  ].join('\n');
+}
+
+function buildWelcomeController(
+  projectName: string,
+  frontend: ScaffoldOptions['frontend'],
+): string {
+  if (frontend === 'tsx' || frontend === 'ejs') {
+    return [
+      `import { Injectable } from '@faber-js/core';`,
+      `import { ViewController } from '@faber-js/view';`,
+      `import type { Request } from '@faber-js/http';`,
+      `import { Response } from '@faber-js/http';`,
+      ``,
+      `@Injectable()`,
+      `export class WelcomeController extends ViewController {`,
+      `  async index(_req: Request): Promise<Response> {`,
+      `    return this.view('welcome', { title: '${projectName}' });`,
+      `  }`,
+      `}`,
+    ].join('\n');
+  }
+  // react / vue — bridge controller
+  return [
+    `import { Injectable } from '@faber-js/core';`,
+    `import { BridgeController } from '@faber-js/bridge';`,
+    `import type { Request } from '@faber-js/http';`,
+    `import { Response } from '@faber-js/http';`,
+    ``,
+    `@Injectable()`,
+    `export class WelcomeController extends BridgeController {`,
+    `  index(_req: Request): Response {`,
+    `    return this.render('Welcome', { name: 'World' });`,
+    `  }`,
+    `}`,
+  ].join('\n');
+}
+
+function buildTsxWelcomeView(): string {
+  return [
+    `interface Props {`,
+    `  title: string;`,
+    `}`,
+    ``,
+    `export default function Welcome({ title }: Props) {`,
+    `  return (`,
+    `    <html lang="en">`,
+    `      <head>`,
+    `        <meta charset="utf-8" />`,
+    `        <meta name="viewport" content="width=device-width, initial-scale=1.0" />`,
+    `        <title>{title}</title>`,
+    `      </head>`,
+    `      <body>`,
+    `        <h1>{title}</h1>`,
+    `        <p>Welcome to FaberJS — edit <code>resources/views/welcome.view.tsx</code> to get started.</p>`,
+    `      </body>`,
+    `    </html>`,
+    `  );`,
+    `}`,
+  ].join('\n');
+}
+
+function buildEjsWelcomeView(): string {
+  return [
+    `<!DOCTYPE html>`,
+    `<html lang="en">`,
+    `  <head>`,
+    `    <meta charset="utf-8" />`,
+    `    <meta name="viewport" content="width=device-width, initial-scale=1.0" />`,
+    `    <title><%= title %></title>`,
+    `  </head>`,
+    `  <body>`,
+    `    <h1><%= title %></h1>`,
+    `    <p>Welcome to FaberJS — edit <code>resources/views/welcome.view.ejs</code> to get started.</p>`,
+    `  </body>`,
+    `</html>`,
+  ].join('\n');
+}
+
+function buildViteConfig(framework: 'react' | 'vue'): string {
+  if (framework === 'react') {
+    return [
+      `import { defineConfig } from 'vite';`,
+      `import react from '@vitejs/plugin-react';`,
+      `import { faberBridge } from '@faber-js/bridge/vite';`,
+      ``,
+      `export default defineConfig({`,
+      `  plugins: [react(), faberBridge({ framework: 'react' })],`,
+      `});`,
+    ].join('\n');
+  }
+  return [
+    `import { defineConfig } from 'vite';`,
+    `import vue from '@vitejs/plugin-vue';`,
+    `import { faberBridge } from '@faber-js/bridge/vite';`,
+    ``,
+    `export default defineConfig({`,
+    `  plugins: [vue(), faberBridge({ framework: 'vue' })],`,
+    `});`,
+  ].join('\n');
+}
+
+function buildReactEntry(): string {
+  return [
+    `import { createBridgeApp } from '@faber-js/bridge-react';`,
+    ``,
+    `const pages = import.meta.glob('./pages/**/*.tsx', { eager: true });`,
+    ``,
+    `void createBridgeApp({`,
+    `  resolve: (name: string) => pages[\`./pages/\${name}.tsx\`],`,
+    `});`,
+  ].join('\n');
+}
+
+function buildReactWelcomePage(): string {
+  return [
+    `interface Props {`,
+    `  name: string;`,
+    `}`,
+    ``,
+    `export default function Welcome({ name }: Props) {`,
+    `  return (`,
+    `    <div>`,
+    `      <h1>Welcome to FaberJS</h1>`,
+    `      <p>Hello, {name}! Edit <code>resources/js/pages/Welcome.tsx</code> to get started.</p>`,
+    `    </div>`,
+    `  );`,
+    `}`,
+  ].join('\n');
+}
+
+function buildVueEntry(): string {
+  return [
+    `import { createBridgeApp } from '@faber-js/bridge-vue';`,
+    ``,
+    `const pages = import.meta.glob('./pages/**/*.vue', { eager: true });`,
+    ``,
+    `void createBridgeApp({`,
+    `  resolve: (name: string) => pages[\`./pages/\${name}.vue\`],`,
+    `});`,
+  ].join('\n');
+}
+
+function buildVueWelcomePage(): string {
+  return [
+    `<script setup lang="ts">`,
+    `defineProps<{ name: string }>();`,
+    `</script>`,
+    ``,
+    `<template>`,
+    `  <div>`,
+    `    <h1>Welcome to FaberJS</h1>`,
+    `    <p>Hello, {{ name }}! Edit <code>resources/js/pages/Welcome.vue</code> to get started.</p>`,
+    `  </div>`,
+    `</template>`,
+  ].join('\n');
+}
+
+function buildBridgeHtml(framework: 'react' | 'vue'): string {
+  const entry = framework === 'react' ? 'app.tsx' : 'app.ts';
+  return [
+    `<!DOCTYPE html>`,
+    `<html lang="en">`,
+    `  <head>`,
+    `    <meta charset="utf-8" />`,
+    `    <meta name="viewport" content="width=device-width, initial-scale=1.0" />`,
+    `    <title>App</title>`,
+    `  </head>`,
+    `  <body>`,
+    `    <div id="app"></div>`,
+    `    <script type="module" src="/resources/js/${entry}"></script>`,
+    `  </body>`,
+    `</html>`,
+  ].join('\n');
 }
 
 function buildDbConfig(driver: ScaffoldOptions['dbDriver']): {
@@ -1613,6 +1916,39 @@ export async function scaffoldProject(
       'app/providers/AuthServiceProvider.ts',
       'database/migrations/0002_create_password_reset_tokens_table.ts',
     ]);
+  }
+
+  if (opts.frontend !== 'none') {
+    const FRONTEND_LABEL: Record<ScaffoldOptions['frontend'], string> = {
+      none: '',
+      tsx: 'JSX views',
+      ejs: 'EJS views',
+      react: 'React + Bridge',
+      vue: 'Vue 3 + Bridge',
+    };
+    const frontendFiles = [
+      'routes/web.ts',
+      'app/controllers/WelcomeController.ts',
+      ...(opts.frontend === 'tsx' ? ['resources/views/welcome.view.tsx'] : []),
+      ...(opts.frontend === 'ejs' ? ['resources/views/welcome.view.ejs'] : []),
+      ...(opts.frontend === 'react'
+        ? [
+            'vite.config.ts',
+            'resources/js/app.tsx',
+            'resources/js/pages/Welcome.tsx',
+            'resources/views/app.html',
+          ]
+        : []),
+      ...(opts.frontend === 'vue'
+        ? [
+            'vite.config.ts',
+            'resources/js/app.ts',
+            'resources/js/pages/Welcome.vue',
+            'resources/views/app.html',
+          ]
+        : []),
+    ];
+    await writeGroup(`Scaffolding ${FRONTEND_LABEL[opts.frontend]}`, frontendFiles);
   }
 
   const agentKeys = [...pending.keys()];

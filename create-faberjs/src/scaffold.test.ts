@@ -22,6 +22,7 @@ function makeOpts(overrides: Partial<ScaffoldOptions> = {}): ScaffoldOptions {
     targetDir: tempDir,
     dbDriver: 'sqlite',
     includeAuth: false,
+    frontend: 'none',
     ...overrides,
   };
 }

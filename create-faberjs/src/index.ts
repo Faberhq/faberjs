@@ -90,6 +90,12 @@ async function main(): Promise<void> {
   const authRaw = await prompt('Include auth scaffolding? (y/n)', 'y');
   const includeAuth = authRaw.toLowerCase() !== 'n';
 
+  const frontend = await promptChoice(
+    'Frontend / view engine',
+    ['none', 'tsx', 'ejs', 'react', 'vue'] as const,
+    'none',
+  );
+
   // Ask which coding agents to support
   process.stdout.write('\n');
   const agentInput = await prompt(
@@ -99,7 +105,7 @@ async function main(): Promise<void> {
   const agents = parseAgents(agentInput);
 
   const targetDir = path.resolve(process.cwd(), projectName);
-  const opts: ScaffoldOptions = { projectName, targetDir, dbDriver, includeAuth, agents };
+  const opts: ScaffoldOptions = { projectName, targetDir, dbDriver, includeAuth, frontend, agents };
 
   process.stdout.write('\n');
 

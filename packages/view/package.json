@@ -46,6 +46,15 @@
   "dependencies": {
     "@faber-js/core": "workspace:^",
     "@faber-js/http": "workspace:^",
-    "@faber-js/router": "workspace:^"
+    "@faber-js/router": "workspace:^",
+    "esbuild": ">=0.17.0"
+  },
+  "peerDependencies": {
+    "ejs": "^3.1.0"
+  },
+  "peerDependenciesMeta": {
+    "ejs": {
+      "optional": true
+    }
   }
 }
