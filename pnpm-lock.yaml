@@ -308,7 +308,7 @@ importers:
         specifier: workspace:^
         version: link:../core
       nodemailer:
-        specifier: '>=6'
+        specifier: ^8.0.0
         version: 8.0.7
     devDependencies:
       '@types/nodemailer':
