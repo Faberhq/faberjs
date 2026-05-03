@@ -20,9 +20,13 @@ export function route(name: string, params: Record<string, string | number> = {}
 
   let url = definition.path;
   for (const [key, value] of Object.entries(params)) {
+    url = url.replace(`{${key}?}`, String(value));
+    url = url.replace(`{${key}}`, String(value));
     url = url.replace(`:${key}`, String(value));
   }
-  return url;
+  // Strip unfilled optional segments (e.g. /{name?} with no value provided)
+  url = url.replace(/\/\{[^}]+\?\}/g, '');
+  return url || '/';
 }
 
 function appKey(): string {

@@ -1,4 +1,4 @@
-import type { AuthUser, UploadedFile } from './types';
+import type { AuthUser, RouteDefinition, UploadedFile } from './types';
 
 export interface RequestOptions {
   readonly method: string;
@@ -203,10 +203,6 @@ export class Request {
     return this.#params[param] ?? '';
   }
 
-  method(): string {
-    return this.#method;
-  }
-
   path(): string {
     return this.#path;
   }
@@ -222,5 +218,32 @@ export class Request {
   /** @internal Used by the kernel to inject matched route parameters after path matching. */
   setRouteParams(params: Record<string, string>): void {
     this.#params = { ...params };
+  }
+
+  #currentRoute: RouteDefinition | null = null;
+
+  /** @internal Set by the kernel after route matching. */
+  setCurrentRoute(route: RouteDefinition): void {
+    this.#currentRoute = route;
+  }
+
+  currentRoute(): RouteDefinition | null {
+    return this.#currentRoute;
+  }
+
+  #methodOverride?: string;
+
+  /** Override the HTTP method (used by method spoofing). */
+  setMethodOverride(method: string): void {
+    this.#methodOverride = method.toUpperCase();
+  }
+
+  /** The real HTTP method, ignoring any spoofed override. */
+  realMethod(): string {
+    return this.#method;
+  }
+
+  method(): string {
+    return this.#methodOverride ?? this.#method;
   }
 }

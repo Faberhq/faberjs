@@ -1,13 +1,13 @@
 interface ResponseData {
   readonly body: unknown;
   readonly status: number;
-  readonly headers: Record<string, string>;
+  readonly headers: Record<string, string | string[]>;
 }
 
 export class Response {
   readonly #body: unknown;
   readonly #status: number;
-  readonly #headers: Record<string, string>;
+  readonly #headers: Record<string, string | string[]>;
 
   private constructor(data: ResponseData) {
     this.#body = data.body;
@@ -15,7 +15,11 @@ export class Response {
     this.#headers = { ...data.headers };
   }
 
-  static json(data: unknown, status = 200, extraHeaders: Record<string, string> = {}): Response {
+  static json(
+    data: unknown,
+    status = 200,
+    extraHeaders: Record<string, string | string[]> = {},
+  ): Response {
     return new Response({
       body: data,
       status,
@@ -80,8 +84,31 @@ export class Response {
     return this.#body;
   }
 
-  getHeaders(): Readonly<Record<string, string>> {
+  getHeaders(): Readonly<Record<string, string | string[]>> {
     return this.#headers;
+  }
+
+  withHeader(key: string, value: string): Response {
+    return new Response({
+      body: this.#body,
+      status: this.#status,
+      headers: { ...this.#headers, [key.toLowerCase()]: value },
+    });
+  }
+
+  withCookie(serialized: string): Response {
+    const existing = this.#headers['set-cookie'];
+    const cookies =
+      existing === undefined
+        ? [serialized]
+        : Array.isArray(existing)
+          ? [...existing, serialized]
+          : [existing, serialized];
+    return new Response({
+      body: this.#body,
+      status: this.#status,
+      headers: { ...this.#headers, 'set-cookie': cookies },
+    });
   }
 }
 

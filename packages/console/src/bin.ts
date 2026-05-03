@@ -31,11 +31,48 @@ program.action(() => {
 program
   .command('make:controller <name>')
   .description('Create a new controller')
-  .action((name: string) => {
-    const result = generateFile('controller', name, cwd);
-    writeGeneratedFile(result);
-    log.created(result.filePath);
-  });
+  .option('-i, --invokable', 'Generate a single-action invokable controller')
+  .option('-r, --resource', 'Generate a resource controller (all 7 CRUD methods)')
+  .option('-a, --api', 'Generate an API resource controller (no create/edit methods)')
+  .option('-m, --model <model>', 'Associate the controller with a model (sets route param name)')
+  .option('-R, --requests', 'Also generate Store and Update FormRequest classes')
+  .action(
+    (
+      name: string,
+      options: {
+        invokable?: boolean;
+        resource?: boolean;
+        api?: boolean;
+        model?: string;
+        requests?: boolean;
+      },
+    ) => {
+      // Determine stub type
+      let stubType = 'controller';
+      if (options.invokable) stubType = 'controller-invokable';
+      else if (options.api) stubType = 'controller-api';
+      else if (options.resource) stubType = 'controller-resource';
+
+      // Derive model param name (e.g. "Post" → "post", "BlogPost" → "blogPost")
+      const modelName = options.model ?? name;
+      const modelParam =
+        modelName.charAt(0).toLowerCase() + modelName.slice(1).replace(/Controller$/i, '');
+
+      const result = generateFile(stubType, name, cwd, { '{{modelParam}}': modelParam });
+      writeGeneratedFile(result);
+      log.created(result.filePath);
+
+      // Optionally generate FormRequest classes for store/update
+      if (options.requests && (options.resource || options.api)) {
+        const model = options.model ?? name.replace(/Controller$/i, '');
+        for (const prefix of ['Store', 'Update']) {
+          const reqResult = generateFile('form-request', `${prefix}${model}`, cwd);
+          writeGeneratedFile(reqResult);
+          log.created(reqResult.filePath);
+        }
+      }
+    },
+  );
 
 program
   .command('make:service <name>')
@@ -299,7 +336,7 @@ program
     await startServer(cwd, Number(options.port), version);
   });
 
-// ── route:list ─────────────────────────────────────────────────────
+// ── route:list / route:cache / route:clear ──────────────────────────
 
 program
   .command('route:list')
@@ -307,6 +344,22 @@ program
   .action(async () => {
     const { listRoutes } = await import('./commands/route-list');
     await listRoutes(cwd);
+  });
+
+program
+  .command('route:cache')
+  .description('Cache the application routes to bootstrap/cache/routes.json')
+  .action(async () => {
+    const { cacheRoutes } = await import('./commands/route-cache');
+    await cacheRoutes(cwd);
+  });
+
+program
+  .command('route:clear')
+  .description('Remove the cached routes file')
+  .action(async () => {
+    const { clearRouteCache } = await import('./commands/route-cache');
+    clearRouteCache(cwd);
   });
 
 // ── tinker ─────────────────────────────────────────────────────────

@@ -46,6 +46,10 @@ export interface GenerateResult {
 // "Controller" first so we don't produce "UserControllerController.ts".
 const TYPE_SUFFIXES: Record<string, string> = {
   controller: 'Controller',
+  'controller-invokable': 'Controller',
+  'controller-resource': 'Controller',
+  'controller-api': 'Controller',
+  'form-request': 'Request',
   service: 'Service',
   job: 'Job',
   event: 'Event',
@@ -97,6 +101,10 @@ export function generateFile(
 
   const dirMap: Record<string, string> = {
     controller: join(cwd, 'app', 'controllers'),
+    'controller-invokable': join(cwd, 'app', 'controllers'),
+    'controller-resource': join(cwd, 'app', 'controllers'),
+    'controller-api': join(cwd, 'app', 'controllers'),
+    'form-request': join(cwd, 'app', 'requests'),
     service: join(cwd, 'app', 'services'),
     model: join(cwd, 'app', 'models'),
     schema: join(cwd, 'schema'),
@@ -118,6 +126,10 @@ export function generateFile(
 
   const fileNameMap: Record<string, string> = {
     controller: `${pascal}Controller.ts`,
+    'controller-invokable': `${pascal}Controller.ts`,
+    'controller-resource': `${pascal}Controller.ts`,
+    'controller-api': `${pascal}Controller.ts`,
+    'form-request': `${pascal}Request.ts`,
     service: `${pascal}Service.ts`,
     model: `${pascal}.ts`,
     schema: `${pascal}.ts`,

@@ -66,6 +66,7 @@ export default defineConfig({
           { text: 'Runtime Adapters', link: '/digging-deeper/adapters' },
           { text: 'Testing', link: '/digging-deeper/testing' },
           { text: 'Cache', link: '/digging-deeper/cache' },
+          { text: 'Sessions & CSRF', link: '/digging-deeper/sessions' },
           { text: 'Mail', link: '/digging-deeper/mail' },
           { text: 'HTTP Client', link: '/digging-deeper/http-client' },
           { text: 'Encryption & Hashing', link: '/digging-deeper/encryption' },

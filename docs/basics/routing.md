@@ -125,9 +125,24 @@ Apply middleware to a single route by chaining `.middleware()`:
 
 ```typescript
 Route.get('/profile', [ProfileController, 'show']).middleware(['auth']);
+
+// Multiple middleware
+Route.get('/dashboard', [DashboardController, 'index']).middleware(['auth', 'throttle']);
+
+// With parameters (name:param syntax)
+Route.put('/post/:id', [PostController, 'update']).middleware(['role:editor']);
 ```
 
-Middleware strings refer to keys registered in your `HttpKernel`. See [Middleware](/basics/middleware) for registration details.
+Exclude specific middleware that was inherited from a group:
+
+```typescript
+Route.group({ middleware: ['auth', 'throttle'] }, () => {
+  Route.get('/', [HomeController, 'index']);
+  Route.get('/status', [StatusController, 'index']).withoutMiddleware(['throttle']);
+});
+```
+
+Middleware strings refer to keys registered in your `HttpKernel`. See [Middleware](/basics/middleware) for full registration and configuration details.
 
 ## Listing routes
 

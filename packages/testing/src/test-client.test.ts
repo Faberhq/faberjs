@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Application } from '@faber-js/core';
+import type { Constructor } from '@faber-js/core';
 import { HttpKernel, Response } from '@faber-js/http';
-import type { RouteDefinition, RouterContract } from '@faber-js/http';
+import type {
+  BindingEntry,
+  ModelBindingResolver,
+  RouteDefinition,
+  RouterContract,
+} from '@faber-js/http';
 import { createTestApp } from './test-client';
 
 class StubRouter implements RouterContract {
@@ -17,6 +23,24 @@ class StubRouter implements RouterContract {
 
   findByName(_name: string): RouteDefinition | undefined {
     return undefined;
+  }
+
+  getGlobalPatterns(): ReadonlyMap<string, string> {
+    return new Map();
+  }
+
+  getFallbackHandler(): undefined {
+    return undefined;
+  }
+
+  model(_p: string, _k: Constructor, _c?: string): void {
+    return;
+  }
+  bind(_p: string, _r: ModelBindingResolver): void {
+    return;
+  }
+  getExplicitBindings(): ReadonlyMap<string, BindingEntry> {
+    return new Map();
   }
 }
 
@@ -35,6 +59,7 @@ describe('TestClient / createTestApp()', () => {
       path: '/hello',
       handler: () => Promise.resolve(Response.json({ message: 'hello' })),
       middleware: [],
+      constraints: {},
     });
 
     router.add({
@@ -42,6 +67,7 @@ describe('TestClient / createTestApp()', () => {
       path: '/echo',
       handler: (req) => Promise.resolve(Response.json(req.all(), 201)),
       middleware: [],
+      constraints: {},
     });
 
     router.add({
@@ -53,6 +79,7 @@ describe('TestClient / createTestApp()', () => {
         return Promise.resolve(Response.json({ user: 'alice' }));
       },
       middleware: [],
+      constraints: {},
     });
 
     app.instance('router', router);

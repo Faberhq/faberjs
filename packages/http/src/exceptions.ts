@@ -43,7 +43,10 @@ export class ModelNotFoundException extends HttpException {
 }
 
 export class TooManyRequestsException extends HttpException {
-  constructor(message = 'Too Many Requests') {
+  readonly retryAfter: number | undefined;
+
+  constructor(message = 'Too Many Requests', retryAfter?: number) {
     super(message, 429);
+    this.retryAfter = retryAfter;
   }
 }

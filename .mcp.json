@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "faberjs": {
+      "command": "npx",
+      "args": ["-y", "@faber-js/mcp"]
+    }
+  }
+}

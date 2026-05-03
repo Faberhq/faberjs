@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "@faber-js/core": "workspace:^",
-    "@faber-js/http": "workspace:^"
+    "@faber-js/http": "workspace:^",
+    "reflect-metadata": "^0.2.2"
   }
 }

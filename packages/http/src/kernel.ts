@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import Fastify from 'fastify';
 import multipart from '@fastify/multipart';
 import type { FastifyInstance, FastifyRequest as RawFastifyRequest, FastifyReply } from 'fastify';
@@ -8,53 +9,176 @@ import { Pipeline } from './pipeline';
 import { HttpException } from './exceptions';
 import { runWithRequest } from './request-context';
 import type {
+  BindingEntry,
   ControllerAction,
   ExceptionHandler,
   HttpKernelContract,
   Middleware,
   RouteDefinition,
   RouterContract,
+  TerminableMiddleware,
   UploadedFile,
 } from './types';
+
+class ModelMissingError extends Error {
+  constructor(readonly missingHandler: ControllerAction) {
+    super('Route model binding not found');
+  }
+}
+
+function lcFirst(s: string): string {
+  return s.charAt(0).toLowerCase() + s.slice(1);
+}
 
 function matchPathParams(pattern: string, pathname: string): Record<string, string> | null {
   const normalize = (s: string): string => s.replace(/\/$/, '') || '/';
   const patternParts = normalize(pattern).split('/');
   const pathParts = normalize(pathname).split('/');
 
-  if (patternParts.length !== pathParts.length) return null;
+  const lastPattern = patternParts[patternParts.length - 1] ?? '';
+  const isLastOptional = /^\{[^}]+\?\}$/.test(lastPattern);
+
+  if (isLastOptional) {
+    if (pathParts.length !== patternParts.length && pathParts.length !== patternParts.length - 1) {
+      return null;
+    }
+  } else if (patternParts.length !== pathParts.length) {
+    return null;
+  }
 
   const params: Record<string, string> = {};
   for (let i = 0; i < patternParts.length; i++) {
     const pp = patternParts[i] ?? '';
     const vp = pathParts[i] ?? '';
+
+    const optBrace = pp.match(/^\{(\w+)\?\}$/);
+    if (optBrace) {
+      if (vp) params[optBrace[1] ?? ''] = decodeURIComponent(vp);
+      continue;
+    }
+
+    const reqBrace = pp.match(/^\{(\w+)\}$/);
+    if (reqBrace) {
+      params[reqBrace[1] ?? ''] = decodeURIComponent(vp);
+      continue;
+    }
+
     if (pp.startsWith(':')) {
       params[pp.slice(1)] = decodeURIComponent(vp);
-    } else if (pp !== vp) {
-      return null;
+      continue;
     }
+
+    if (pp !== vp) return null;
   }
   return params;
+}
+
+function domainToRegex(domain: string): RegExp {
+  // Convert {param} placeholders to [^.]+ and escape everything else
+  const pattern = domain
+    .split('.')
+    .map((seg) => (/^\{[^}]+\}$/.test(seg) ? '[^.]+' : seg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+    .join('\\.');
+  return new RegExp(`^${pattern}$`, 'i');
+}
+
+function buildFastifyUrls(
+  path: string,
+  constraints: Record<string, string>,
+  globalPatterns: ReadonlyMap<string, string>,
+): string[] {
+  const segments = path.split('/');
+  let baseUrl: string | null = null;
+
+  const converted = segments.map((segment, index) => {
+    const optBrace = segment.match(/^\{(\w+)\?\}$/);
+    if (optBrace) {
+      if (index !== segments.length - 1) {
+        throw new Error(
+          `Optional route parameter '{${optBrace[1]}?}' must be the last segment in: ${path}`,
+        );
+      }
+      baseUrl = segments.slice(0, index).join('/') || '/';
+      const paramName = optBrace[1] ?? '';
+      const regex = constraints[paramName] ?? globalPatterns.get(paramName);
+      return regex ? `:${paramName}(${regex})` : `:${paramName}`;
+    }
+
+    const reqBrace = segment.match(/^\{(\w+)\}$/);
+    if (reqBrace) {
+      const paramName = reqBrace[1] ?? '';
+      const regex = constraints[paramName] ?? globalPatterns.get(paramName);
+      return regex ? `:${paramName}(${regex})` : `:${paramName}`;
+    }
+
+    if (segment.startsWith(':')) {
+      const paramName = segment.slice(1);
+      const regex = constraints[paramName] ?? globalPatterns.get(paramName);
+      return regex ? `:${paramName}(${regex})` : segment;
+    }
+
+    return segment;
+  });
+
+  const primaryUrl = converted.join('/') || '/';
+  return baseUrl !== null ? [baseUrl as string, primaryUrl] : [primaryUrl];
 }
 
 function matchRoute(
   routes: readonly RouteDefinition[],
   method: string,
   pathname: string,
+  host?: string,
 ): { route: RouteDefinition; params: Record<string, string> } | null {
   const upperMethod = method.toUpperCase();
   for (const route of routes) {
     if (route.method !== upperMethod) continue;
     const params = matchPathParams(route.path, pathname);
-    if (params !== null) return { route, params };
+    if (params === null) continue;
+    if (route.domain) {
+      const domainPattern = domainToRegex(route.domain);
+      const hostOnly = (host ?? '').split(':')[0] ?? '';
+      if (!domainPattern.test(hostOnly)) continue;
+      const domainParams = matchDomainParams(route.domain, hostOnly);
+      return { route, params: { ...params, ...domainParams } };
+    }
+    return { route, params };
   }
   return null;
+}
+
+function matchDomainParams(domainPattern: string, host: string): Record<string, string> {
+  const patternSegs = domainPattern.split('.');
+  const hostSegs = host.split('.');
+  const params: Record<string, string> = {};
+  if (patternSegs.length !== hostSegs.length) return params;
+  for (let i = 0; i < patternSegs.length; i++) {
+    const ps = patternSegs[i] ?? '';
+    const hs = hostSegs[i] ?? '';
+    const m = ps.match(/^\{(\w+)\}$/);
+    if (m) params[m[1] ?? ''] = hs;
+  }
+  return params;
+}
+
+/** Internal wrapper that pre-binds middleware parameters, preserving terminate if present. */
+class BoundMiddleware implements Middleware {
+  constructor(
+    readonly inner: Middleware,
+    private readonly boundParams: string[],
+  ) {}
+
+  handle(request: Request, next: (req: Request) => Promise<Response>): Promise<Response> {
+    return this.inner.handle(request, next, ...this.boundParams);
+  }
 }
 
 export class HttpKernel implements HttpKernelContract {
   private readonly fastify: FastifyInstance;
   private readonly globalMiddleware: Middleware[] = [];
   private readonly namedMiddleware = new Map<string, Middleware>();
+  private readonly middlewareGroups = new Map<string, string[]>();
+  private priorityList: string[] = [];
   private address = '';
 
   constructor(private readonly app: ApplicationContract) {
@@ -78,6 +202,28 @@ export class HttpKernel implements HttpKernelContract {
 
   pushGlobal(middleware: Middleware): this {
     return this.use(middleware);
+  }
+
+  appendToGroup(name: string, middlewares: string[]): this {
+    const existing = this.middlewareGroups.get(name) ?? [];
+    this.middlewareGroups.set(name, [...existing, ...middlewares]);
+    return this;
+  }
+
+  prependToGroup(name: string, middlewares: string[]): this {
+    const existing = this.middlewareGroups.get(name) ?? [];
+    this.middlewareGroups.set(name, [...middlewares, ...existing]);
+    return this;
+  }
+
+  middlewareGroup(name: string, middlewares: string[]): this {
+    this.middlewareGroups.set(name, middlewares);
+    return this;
+  }
+
+  priority(orderedNames: string[]): this {
+    this.priorityList = orderedNames;
+    return this;
   }
 
   async listen(port: number, host = '127.0.0.1'): Promise<void> {
@@ -112,25 +258,40 @@ export class HttpKernel implements HttpKernelContract {
     }
 
     const router = this.app.make<RouterContract>('router');
-    const match = matchRoute(router.getRoutes(), request.method(), request.path());
+    const host = request.header('host') ?? undefined;
+    const match = matchRoute(router.getRoutes(), request.method(), request.path(), host);
 
     if (match === null) {
+      const fallback = router.getFallbackHandler();
+      if (fallback) {
+        const pipeline = new Pipeline([...this.globalMiddleware], (req) =>
+          this.invokeHandler(fallback, req),
+        );
+        try {
+          const response = await runWithRequest(request, () => pipeline.send(request));
+          await this.runTerminate([...this.globalMiddleware], request, response);
+          return response;
+        } catch (error: unknown) {
+          return this.buildErrorResponse(error);
+        }
+      }
       return Response.notFound('Route not found');
     }
 
     const { route, params } = match;
     request.setRouteParams(params);
+    request.setCurrentRoute(route);
 
-    const routeMiddleware = route.middleware
-      .map((name) => this.resolveMiddleware(name))
-      .filter((mw): mw is Middleware => mw !== undefined);
+    const routeMiddleware = this.resolveRouteMiddleware(route);
+    const decoratorMiddleware = this.getDecoratorMiddleware(route.handler);
+    const allMiddleware = [...this.globalMiddleware, ...routeMiddleware, ...decoratorMiddleware];
 
-    const pipeline = new Pipeline([...this.globalMiddleware, ...routeMiddleware], (req) =>
-      this.invokeHandler(route.handler, req),
-    );
+    const pipeline = new Pipeline(allMiddleware, (req) => this.invokeHandler(route.handler, req));
 
     try {
-      return await runWithRequest(request, () => pipeline.send(request));
+      const response = await runWithRequest(request, () => pipeline.send(request));
+      await this.runTerminate(allMiddleware, request, response);
+      return response;
     } catch (error: unknown) {
       return this.buildErrorResponse(error);
     }
@@ -138,6 +299,54 @@ export class HttpKernel implements HttpKernelContract {
 
   getUrl(): string {
     return this.address;
+  }
+
+  /** Resolves and sorts route-specific middleware, applying exclusions, group expansion, and priority. */
+  private resolveRouteMiddleware(route: RouteDefinition): Middleware[] {
+    const excluded = route.excludedMiddleware ?? [];
+    const effectiveNames = route.middleware.filter((name) => !excluded.includes(name));
+    const sortedNames = this.sortNamesByPriority(effectiveNames);
+    return this.expandAndResolve(sortedNames);
+  }
+
+  /**
+   * Expands group names and resolves each middleware entry to an instance.
+   * Parses `name:param1,param2` syntax and pre-binds params via BoundMiddleware.
+   */
+  private expandAndResolve(names: string[]): Middleware[] {
+    const result: Middleware[] = [];
+    for (const entry of names) {
+      const colonIndex = entry.indexOf(':');
+      const name = colonIndex === -1 ? entry : entry.slice(0, colonIndex);
+      const paramString = colonIndex === -1 ? undefined : entry.slice(colonIndex + 1);
+      const params = paramString ? paramString.split(',') : [];
+
+      if (this.middlewareGroups.has(name) && params.length === 0) {
+        result.push(...this.expandAndResolve(this.middlewareGroups.get(name) ?? []));
+      } else {
+        const mw = this.resolveMiddleware(name);
+        if (mw !== undefined) {
+          result.push(params.length > 0 ? new BoundMiddleware(mw, params) : mw);
+        }
+      }
+    }
+    return result;
+  }
+
+  private sortNamesByPriority(names: string[]): string[] {
+    if (this.priorityList.length === 0) return names;
+
+    // Strip params for priority comparison, then sort priority-listed ones first
+    const indexOf = (entry: string): number => {
+      const name = entry.includes(':') ? entry.slice(0, entry.indexOf(':')) : entry;
+      return this.priorityList.indexOf(name);
+    };
+
+    const prioritized = names.filter((n) => indexOf(n) !== -1);
+    const rest = names.filter((n) => indexOf(n) === -1);
+
+    prioritized.sort((a, b) => indexOf(a) - indexOf(b));
+    return [...prioritized, ...rest];
   }
 
   private resolveMiddleware(name: string): Middleware | undefined {
@@ -150,30 +359,90 @@ export class HttpKernel implements HttpKernelContract {
     return undefined;
   }
 
+  private async runTerminate(
+    middlewares: Middleware[],
+    request: Request,
+    response: Response,
+  ): Promise<void> {
+    for (const mw of middlewares) {
+      const target = mw instanceof BoundMiddleware ? mw.inner : mw;
+      if (
+        'terminate' in target &&
+        typeof (target as TerminableMiddleware).terminate === 'function'
+      ) {
+        await Promise.resolve((target as TerminableMiddleware).terminate(request, response));
+      }
+    }
+  }
+
   private registerRoutes(router: RouterContract): void {
+    const globalPatterns = router.getGlobalPatterns();
+
     for (const route of router.getRoutes()) {
-      const { method, path, handler, middleware: routeMiddlewareNames } = route;
-      this.fastify.route({
-        method,
-        url: path,
-        handler: async (rawReq: RawFastifyRequest, reply: FastifyReply) => {
-          try {
-            const { body, files } = await this.parseRequestBody(rawReq);
-            const request = this.adaptRequest(rawReq, body, files);
+      const { method, handler } = route;
+      const fastifyUrls = buildFastifyUrls(route.path, route.constraints, globalPatterns);
 
-            const routeMiddleware = routeMiddlewareNames
-              .map((name) => this.resolveMiddleware(name))
-              .filter((mw): mw is Middleware => mw !== undefined);
+      const domainPattern = route.domain ? domainToRegex(route.domain) : null;
 
-            const pipeline = new Pipeline([...this.globalMiddleware, ...routeMiddleware], (req) =>
-              this.invokeHandler(handler, req),
-            );
-            const res = await runWithRequest(request, () => pipeline.send(request));
-            await this.sendResponse(reply, res);
-          } catch (error: unknown) {
-            await this.handleError(reply, error);
-          }
-        },
+      for (const url of fastifyUrls) {
+        this.fastify.route({
+          method,
+          url,
+          handler: async (rawReq: RawFastifyRequest, reply: FastifyReply) => {
+            try {
+              let extraParams: Record<string, string> = {};
+              if (domainPattern && route.domain) {
+                const host = (rawReq.headers['host'] ?? '').split(':')[0] ?? '';
+                if (!domainPattern.test(host)) {
+                  await reply.status(404).send({ message: 'Not Found' });
+                  return;
+                }
+                extraParams = matchDomainParams(route.domain, host);
+              }
+
+              const { body, files } = await this.parseRequestBody(rawReq);
+              const request = this.adaptRequest(rawReq, body, files);
+              if (Object.keys(extraParams).length > 0) {
+                request.setRouteParams({ ...request.params(), ...extraParams });
+              }
+              request.setCurrentRoute(route);
+
+              const routeMiddleware = this.resolveRouteMiddleware(route);
+              const decoratorMiddleware = this.getDecoratorMiddleware(handler);
+              const allMiddleware = [
+                ...this.globalMiddleware,
+                ...routeMiddleware,
+                ...decoratorMiddleware,
+              ];
+
+              const pipeline = new Pipeline(allMiddleware, (req) =>
+                this.invokeHandler(handler, req),
+              );
+              const res = await runWithRequest(request, () => pipeline.send(request));
+              await this.sendResponse(reply, res);
+              await this.runTerminate(allMiddleware, request, res);
+            } catch (error: unknown) {
+              await this.handleError(reply, error);
+            }
+          },
+        });
+      }
+    }
+
+    const fallback = router.getFallbackHandler();
+    if (fallback) {
+      this.fastify.setNotFoundHandler(async (rawReq: RawFastifyRequest, reply: FastifyReply) => {
+        try {
+          const { body, files } = await this.parseRequestBody(rawReq);
+          const request = this.adaptRequest(rawReq, body, files);
+          const pipeline = new Pipeline([...this.globalMiddleware], (req) =>
+            this.invokeHandler(fallback, req),
+          );
+          const res = await runWithRequest(request, () => pipeline.send(request));
+          await this.sendResponse(reply, res);
+        } catch (error: unknown) {
+          await this.handleError(reply, error);
+        }
       });
     }
   }
@@ -264,30 +533,218 @@ export class HttpKernel implements HttpKernelContract {
   }
 
   private async invokeHandler(handler: ControllerAction, request: Request): Promise<Response> {
+    if (Array.isArray(handler)) {
+      const tuple = handler as readonly [Constructor?, string?];
+      const ControllerClass = tuple[0];
+      if (!ControllerClass)
+        throw new Error('Handler tuple must have a constructor as first element.');
+      const methodName = tuple[1] ?? '__invoke';
+      const controller = this.app.make(ControllerClass);
+      const record = controller as Record<string, (...args: unknown[]) => Promise<Response>>;
+      if (typeof record[methodName] !== 'function') {
+        throw new Error(`Method [${methodName}] not found on [${ControllerClass.name}].`);
+      }
+      await this.checkAuthorize(ControllerClass, methodName, request);
+      try {
+        const args = await this.resolveMethodArgs(ControllerClass, methodName, request);
+        return record[methodName].apply(controller, args);
+      } catch (e) {
+        if (e instanceof ModelMissingError) return this.invokeHandler(e.missingHandler, request);
+        throw e;
+      }
+    }
+
     if (typeof handler === 'function') {
-      return handler(request);
+      const isClass = /^\s*class[\s{]/.test(Function.prototype.toString.call(handler));
+      if (!isClass) {
+        return (handler as (req: Request) => Promise<Response>)(request);
+      }
+      const ControllerClass = handler as Constructor;
+      const controller = this.app.make(ControllerClass);
+      const record = controller as Record<string, (...args: unknown[]) => Promise<Response>>;
+      if (typeof record['__invoke'] !== 'function') {
+        throw new Error(`Method [__invoke] not found on [${ControllerClass.name}].`);
+      }
+      await this.checkAuthorize(ControllerClass, '__invoke', request);
+      try {
+        const args = await this.resolveMethodArgs(ControllerClass, '__invoke', request);
+        return record['__invoke'].apply(controller, args);
+      } catch (e) {
+        if (e instanceof ModelMissingError) return this.invokeHandler(e.missingHandler, request);
+        throw e;
+      }
     }
 
-    const [ControllerClass, methodName] = handler as readonly [Constructor, string];
-    const controller = this.app.make(ControllerClass);
-    const record = controller as Record<string, (req: Request) => Promise<Response>>;
+    throw new Error('Unrecognized handler type in invokeHandler.');
+  }
 
-    if (typeof record[methodName] !== 'function') {
-      throw new Error(`Method [${methodName}] not found on [${ControllerClass.name}].`);
+  private getDecoratorMiddleware(handler: ControllerAction): Middleware[] {
+    let ControllerClass: Constructor | undefined;
+    let methodName: string | undefined;
+
+    if (Array.isArray(handler)) {
+      const tuple = handler as readonly [Constructor, string?];
+      ControllerClass = tuple[0];
+      methodName = tuple[1] ?? '__invoke';
+    } else if (typeof handler === 'function') {
+      const isClass = /^\s*class[\s{]/.test(Function.prototype.toString.call(handler));
+      if (isClass) {
+        ControllerClass = handler as Constructor;
+        methodName = '__invoke';
+      }
     }
 
-    return record[methodName].call(controller, request);
+    if (!ControllerClass || !methodName) return [];
+
+    const CTRL_MW_KEY = Symbol.for('faber:controller:middleware');
+    const METHOD_MW_KEY = Symbol.for('faber:method:middleware');
+
+    interface MwEntry {
+      name: string;
+      only?: string[];
+      except?: string[];
+    }
+
+    const classEntries: MwEntry[] = Reflect.getMetadata(CTRL_MW_KEY, ControllerClass) ?? [];
+    const methodEntries: MwEntry[] =
+      Reflect.getMetadata(METHOD_MW_KEY, ControllerClass.prototype, methodName) ?? [];
+
+    const method = methodName;
+    const effectiveClass = classEntries.filter((e) => {
+      if (e.only && !e.only.includes(method)) return false;
+      if (e.except && e.except.includes(method)) return false;
+      return true;
+    });
+
+    const names = [...effectiveClass.map((e) => e.name), ...methodEntries.map((e) => e.name)];
+    return this.expandAndResolve(names);
+  }
+
+  private async checkAuthorize(
+    ControllerClass: Constructor,
+    methodName: string,
+    request: Request,
+  ): Promise<void> {
+    const AUTHORIZE_KEY = Symbol.for('faber:authorize');
+
+    interface AuthEntry {
+      ability: string;
+      model?: Constructor | string | readonly [Constructor, string];
+    }
+
+    const entries: AuthEntry[] =
+      Reflect.getMetadata(AUTHORIZE_KEY, ControllerClass.prototype, methodName) ?? [];
+
+    if (entries.length === 0 || !this.app.bound('gate')) return;
+
+    const gate = this.app.make<{
+      allows(ability: string, ...args: unknown[]): Promise<boolean> | boolean;
+    }>('gate');
+
+    for (const { ability, model } of entries) {
+      let allowed: boolean;
+
+      if (model === undefined) {
+        allowed = await Promise.resolve(gate.allows(ability));
+      } else if (typeof model === 'string') {
+        allowed = await Promise.resolve(gate.allows(ability, request.route(model)));
+      } else if (Array.isArray(model)) {
+        const [ModelClass, paramName] = model as [Constructor, string];
+        allowed = await Promise.resolve(gate.allows(ability, ModelClass, request.route(paramName)));
+      } else {
+        allowed = await Promise.resolve(gate.allows(ability, model));
+      }
+
+      if (!allowed) {
+        throw new HttpException('This action is unauthorized.', 403);
+      }
+    }
+  }
+
+  private async resolveMethodArgs(
+    ControllerClass: Constructor,
+    methodName: string,
+    request: Request,
+  ): Promise<unknown[]> {
+    const paramTypes = Reflect.getMetadata(
+      'design:paramtypes',
+      ControllerClass.prototype,
+      methodName,
+    ) as Array<Constructor | undefined> | undefined;
+
+    if (!paramTypes || paramTypes.length === 0) return [request];
+
+    const results: unknown[] = [];
+    for (const ParamType of paramTypes) {
+      if (!ParamType) {
+        results.push(undefined);
+        continue;
+      }
+      if (ParamType === (Request as unknown as Constructor)) {
+        results.push(request);
+        continue;
+      }
+
+      if (this.isRouteBindable(ParamType)) {
+        const paramName = lcFirst(ParamType.name);
+        const resolved = await this.resolveModelParam(ParamType, paramName, request);
+        if (resolved === null || resolved === undefined) {
+          const route = request.currentRoute();
+          if (route?.missingHandler) throw new ModelMissingError(route.missingHandler);
+          throw new HttpException(`No query results for model [${ParamType.name}].`, 404);
+        }
+        results.push(resolved);
+        continue;
+      }
+
+      results.push(this.app.bound(ParamType) ? this.app.make(ParamType) : undefined);
+    }
+    return results;
+  }
+
+  private isRouteBindable(klass: Constructor): boolean {
+    return typeof (klass as unknown as Record<string, unknown>).resolveRouteBinding === 'function';
+  }
+
+  private async resolveModelParam(
+    ModelClass: Constructor,
+    paramName: string,
+    request: Request,
+  ): Promise<unknown> {
+    const routeValue = request.route(paramName);
+    if (!routeValue) return null;
+
+    if (this.app.bound('router')) {
+      const router = this.app.make<RouterContract>('router');
+      const binding = router.getExplicitBindings().get(paramName) as BindingEntry | undefined;
+      if (binding) {
+        if (binding.kind === 'resolver') return binding.fn(routeValue, request);
+        const { klass, column } = binding;
+        const resolver = (
+          klass as unknown as Record<string, (v: string, f?: string) => Promise<unknown>>
+        ).resolveRouteBinding;
+        return typeof resolver === 'function' ? resolver.call(klass, routeValue, column) : null;
+      }
+    }
+
+    const implicitResolver = (
+      ModelClass as unknown as Record<string, (v: string) => Promise<unknown>>
+    ).resolveRouteBinding;
+    return typeof implicitResolver === 'function'
+      ? implicitResolver.call(ModelClass, routeValue)
+      : null;
   }
 
   private async sendResponse(reply: FastifyReply, res: Response): Promise<void> {
     const headers = res.getHeaders();
     for (const [key, value] of Object.entries(headers)) {
-      void reply.header(key, value);
+      void reply.header(key, value as string | string[]);
     }
 
     const body = res.getBody();
     if (body === null) {
-      const contentType = res.getHeaders()['content-type'] ?? '';
+      const ctRaw = res.getHeaders()['content-type'] ?? '';
+      const contentType = Array.isArray(ctRaw) ? ctRaw.join(',') : ctRaw;
       if (contentType.includes('application/json')) {
         await reply.status(res.getStatus()).send('null');
         return;

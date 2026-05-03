@@ -29,6 +29,104 @@ export class {{Name}}Controller extends Controller {
 }
 `,
 
+  'controller-invokable': `import { Injectable } from '@faber-js/core';
+import { Controller } from '@faber-js/router';
+import type { Request } from '@faber-js/http';
+import { Response } from '@faber-js/http';
+
+@Injectable()
+export class {{Name}}Controller extends Controller {
+  async __invoke(_req: Request): Promise<Response> {
+    return this.json({ data: {} });
+  }
+}
+`,
+
+  'controller-resource': `import { Injectable } from '@faber-js/core';
+import { Controller } from '@faber-js/router';
+import type { Request } from '@faber-js/http';
+import { Response } from '@faber-js/http';
+
+@Injectable()
+export class {{Name}}Controller extends Controller {
+  async index(_req: Request): Promise<Response> {
+    return this.json({ data: [] });
+  }
+
+  async create(_req: Request): Promise<Response> {
+    return this.json({ data: {} });
+  }
+
+  async store(_req: Request): Promise<Response> {
+    return this.json({ data: {} }, 201);
+  }
+
+  async show(req: Request): Promise<Response> {
+    const {{modelParam}} = req.route('{{modelParam}}');
+    return this.json({ data: { {{modelParam}} } });
+  }
+
+  async edit(req: Request): Promise<Response> {
+    const {{modelParam}} = req.route('{{modelParam}}');
+    return this.json({ data: { {{modelParam}} } });
+  }
+
+  async update(req: Request): Promise<Response> {
+    const {{modelParam}} = req.route('{{modelParam}}');
+    return this.json({ data: { {{modelParam}} } });
+  }
+
+  async destroy(_req: Request): Promise<Response> {
+    return this.noContent();
+  }
+}
+`,
+
+  'controller-api': `import { Injectable } from '@faber-js/core';
+import { Controller } from '@faber-js/router';
+import type { Request } from '@faber-js/http';
+import { Response } from '@faber-js/http';
+
+@Injectable()
+export class {{Name}}Controller extends Controller {
+  async index(_req: Request): Promise<Response> {
+    return this.json({ data: [] });
+  }
+
+  async store(_req: Request): Promise<Response> {
+    return this.json({ data: {} }, 201);
+  }
+
+  async show(req: Request): Promise<Response> {
+    const {{modelParam}} = req.route('{{modelParam}}');
+    return this.json({ data: { {{modelParam}} } });
+  }
+
+  async update(req: Request): Promise<Response> {
+    const {{modelParam}} = req.route('{{modelParam}}');
+    return this.json({ data: { {{modelParam}} } });
+  }
+
+  async destroy(_req: Request): Promise<Response> {
+    return this.noContent();
+  }
+}
+`,
+
+  'form-request': `import { Injectable } from '@faber-js/core';
+import { FormRequest } from '@faber-js/validation';
+import type { Rules } from '@faber-js/validation';
+
+@Injectable()
+export class {{Name}}Request extends FormRequest {
+  rules(): Rules {
+    return {
+      // Add your validation rules here
+    };
+  }
+}
+`,
+
   service: `import { Injectable, Service } from '@faber-js/core';
 
 @Injectable()

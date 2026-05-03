@@ -900,6 +900,133 @@ ANTI-PATTERNS to avoid:
 - Never use ESM imports in app code — FaberJS apps use CommonJS + ts-node
 `.trim(),
   },
+
+  {
+    title: 'Sessions — @faber-js/session',
+    keywords: [
+      'session',
+      'sessions',
+      'flash',
+      'cookie',
+      'start session',
+      'regenerate',
+      'invalidate',
+      'flash data',
+      'previous url',
+    ],
+    content: `
+Import: import { session, StartSession, SessionServiceProvider } from '@faber-js/session';
+
+Register the provider (bootstrap/app.ts):
+  import { SessionServiceProvider } from '@faber-js/session';
+  app.register(new SessionServiceProvider(app, {
+    driver: 'file',       // 'file' | 'memory'
+    cookie: {
+      name: 'faber_session',
+      ttlMinutes: 120,
+      secure: true,
+      httpOnly: true,
+      sameSite: 'Lax',
+    },
+  }));
+
+Register session middleware (bootstrap/app.ts):
+  kernel.middlewareGroup('web', ['session', 'csrf']);
+  kernel.priority(['session', 'csrf', 'auth']);
+
+Access the session in a controller or middleware:
+  import { session } from '@faber-js/session';
+
+  const s = session(req);         // throws if StartSession not in pipeline
+
+  s.put('user_id', 42);           // store
+  s.get('user_id');               // read
+  s.get('locale', 'en');          // read with default
+  s.has('user_id');               // exists?
+  s.forget('temp');               // remove
+  s.flush();                      // clear all
+  s.pull('code');                 // read and remove
+  s.all();                        // all session data
+
+Flash data (available in the next request only):
+  s.flash('status', 'Profile updated!');
+  s.reflash();                    // keep all flash for one more request
+  s.keep('status', 'errors');     // keep specific keys
+
+Session lifecycle:
+  await s.regenerate();           // new ID, preserve data (call after login)
+  await s.regenerate(true);       // new ID, destroy old session
+  await s.invalidate();           // destroy + flush + new ID
+
+CSRF token:
+  const token = s.token();        // get or generate the session's CSRF token
+
+Drivers: 'file' (default, production-safe single server), 'memory' (tests only).
+Custom driver: implement SessionDriver interface (read/write/destroy/gc).
+`.trim(),
+  },
+
+  {
+    title: 'CSRF Protection — @faber-js/session',
+    keywords: [
+      'csrf',
+      'cross site',
+      'request forgery',
+      'xsrf',
+      'x-csrf-token',
+      'x-xsrf-token',
+      'prevent request forgery',
+      'csrf token',
+      'sec-fetch-site',
+      'origin verification',
+      'webhook exclude',
+    ],
+    content: `
+Import: import { PreventRequestForgery } from '@faber-js/session';
+
+The PreventRequestForgery middleware is registered automatically when using SessionServiceProvider.
+The 'csrf' middleware alias is available after registering the provider.
+
+How it works — two-layer check for POST/PUT/PATCH/DELETE:
+  1. Sec-Fetch-Site header: if 'same-origin' → allow immediately (no token needed)
+  2. Token fallback (for older browsers / non-HTTPS):
+     - Check _token field in POST body
+     - Check X-CSRF-TOKEN request header
+     - Check X-XSRF-TOKEN request header (from XSRF-TOKEN encrypted cookie)
+  Returns 419 if check fails (403 in originOnly mode).
+
+GET/HEAD/OPTIONS are always allowed — no token required.
+
+Setting the token in forms:
+  const token = session(req).token();
+  // embed in HTML form as: <input type="hidden" name="_token" value="{{ token }}" />
+
+SPA / Axios:
+  The middleware automatically sets an XSRF-TOKEN cookie on every response.
+  Axios reads this cookie and sends it as X-XSRF-TOKEN automatically.
+  No manual configuration needed.
+
+Excluding webhook URIs:
+  app.register(new SessionServiceProvider(app, sessionConfig, {
+    except: ['/webhooks/stripe', '/webhooks/*'],
+  }));
+
+Origin-only mode (disables token fallback entirely):
+  app.register(new SessionServiceProvider(app, sessionConfig, {
+    originOnly: true,   // returns 403 (not 419) on failure; requires HTTPS
+  }));
+
+Allow same-site requests (cross-subdomain):
+  app.register(new SessionServiceProvider(app, sessionConfig, {
+    allowSameSite: true,
+  }));
+
+IMPORTANT:
+- CSRF middleware requires StartSession to run first (session must be attached to request)
+- Webhook routes should set except[] OR be placed outside the 'web' middleware group
+- originOnly mode only works over HTTPS
+`.trim(),
+  },
 ];
 
 export function searchKnowledge(query: string): KnowledgeSection[] {

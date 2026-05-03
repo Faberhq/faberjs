@@ -299,6 +299,9 @@ importers:
       picocolors:
         specifier: ^1.1.1
         version: 1.1.1
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
 
   packages/http-client: {}
 
@@ -377,6 +380,9 @@ importers:
       '@faber-js/http':
         specifier: workspace:^
         version: link:../http
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
 
   packages/schema:
     dependencies:
@@ -405,6 +411,18 @@ importers:
       knex:
         specifier: ^3.1.0
         version: 3.2.9(better-sqlite3@9.6.0)
+
+  packages/session:
+    dependencies:
+      '@faber-js/core':
+        specifier: workspace:^
+        version: link:../core
+      '@faber-js/crypt':
+        specifier: workspace:^
+        version: link:../crypt
+      '@faber-js/http':
+        specifier: workspace:^
+        version: link:../http
 
   packages/support: {}
 

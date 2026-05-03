@@ -53,13 +53,14 @@ export class FastifyAdapter implements HttpAdapter {
   private async sendResponse(reply: FastifyReply, res: FaberResponse): Promise<void> {
     const headers = res.getHeaders();
     for (const [key, value] of Object.entries(headers)) {
-      void reply.header(key, value);
+      void reply.header(key, value as string | string[]);
     }
 
     const body = res.getBody();
 
     if (body === null) {
-      const contentType = headers['content-type'] ?? '';
+      const ctRaw = headers['content-type'] ?? '';
+      const contentType = Array.isArray(ctRaw) ? ctRaw.join(',') : ctRaw;
       if (contentType.includes('application/json')) {
         await reply.status(res.getStatus()).send('null');
         return;

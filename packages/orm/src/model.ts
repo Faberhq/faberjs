@@ -211,6 +211,25 @@ export abstract class Model {
     return (scopeFn as (qb: QueryBuilder<T>, ...a: unknown[]) => QueryBuilder<T>)(qb, ...args);
   }
 
+  static async resolveRouteBinding<T extends Model>(
+    this: ModelStatics<T>,
+    value: string,
+    field?: string,
+  ): Promise<T | null> {
+    const ctor = this as unknown as typeof Model;
+    const bindField = field ?? ctor.primaryKey;
+    const db = getConnection();
+    const rows = (await db(ctor.table).where(bindField, value).limit(1).select('*')) as Array<
+      Record<string, ColumnValue>
+    >;
+    const first = rows[0];
+    if (!first) return null;
+    const instance = new this() as unknown as Model;
+    instance.fill(first);
+    instance.exists = true;
+    return instance as T;
+  }
+
   static async find<T extends Model>(this: ModelStatics<T>, id: ColumnValue): Promise<T | null> {
     const ctor = this as unknown as typeof Model;
     const db = getConnection();
