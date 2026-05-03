@@ -298,8 +298,77 @@ Global:  LogMiddleware (after)
 
 ## Built-in middleware
 
+### CORS — `HandleCors`
+
+Handles Cross-Origin Resource Sharing (CORS) headers and pre-flight `OPTIONS` requests:
+
+```typescript
+import { HandleCors } from '@faber-js/http';
+
+kernel.use(new HandleCors());
+// or with options:
+kernel.use(
+  new HandleCors({
+    origin: ['https://app.example.com', 'https://admin.example.com'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    headers: ['Content-Type', 'Authorization'],
+    credentials: true,
+    maxAge: 86400,
+  }),
+);
+```
+
+`HandleCors` should run as a **global** middleware (before routing) so that pre-flight `OPTIONS` requests are handled even for protected routes. When `origin` is omitted, it reflects the request origin (`Access-Control-Allow-Origin: *` for non-credentialed requests).
+
+### Method spoofing — `MethodSpoofing`
+
+Allows HTML forms (which only support `GET`/`POST`) to tunnel `PUT`, `PATCH`, or `DELETE` by reading a `_method` hidden field:
+
+```typescript
+import { MethodSpoofing } from '@faber-js/http';
+
+kernel.use(new MethodSpoofing());
+```
+
+```html
+<form method="POST" action="/posts/1">
+  <input type="hidden" name="_method" value="PUT" />
+  ...
+</form>
+```
+
+After `MethodSpoofing` processes the request, `request.method()` returns the spoofed method (`PUT`) while `request.realMethod()` always returns the original HTTP method (`POST`).
+
+### Rate limiting — `ThrottleRequests`
+
+Limits requests per IP using any `RateLimiterInterface`-compatible backend (e.g. `@faber-js/cache`):
+
+```typescript
+import { ThrottleRequests } from '@faber-js/http';
+import { RateLimiter } from '@faber-js/cache';
+
+const limiter = app.make<RateLimiter>('rate-limiter');
+kernel.alias('throttle', new ThrottleRequests(limiter));
+```
+
+Apply per-route with optional `maxAttempts:decaySeconds` parameters:
+
+```typescript
+// 60 requests per 60 seconds (defaults)
+Route.get('/api/data', [DataController, 'index']).middleware(['throttle']);
+
+// 10 requests per 30 seconds
+Route.post('/api/upload', [UploadController, 'store']).middleware(['throttle:10,30']);
+```
+
+When exceeded, throws `TooManyRequestsException` (HTTP 429) with a `retryAfter` value in seconds.
+
+### Other built-in middleware
+
 | Key (suggested) | Class                   | Package             | Description                                                                 |
 | --------------- | ----------------------- | ------------------- | --------------------------------------------------------------------------- |
+| `cors`          | `HandleCors`            | `@faber-js/http`    | CORS headers + pre-flight `OPTIONS` responses                               |
+| `throttle`      | `ThrottleRequests`      | `@faber-js/http`    | Rate limiting by IP — throws 429 when exceeded                              |
 | `session`       | `StartSession`          | `@faber-js/session` | Loads session from cookie, saves on response, sets `Set-Cookie`             |
 | `csrf`          | `PreventRequestForgery` | `@faber-js/session` | CSRF protection — origin check + token fallback for `POST/PUT/PATCH/DELETE` |
 | `auth`          | `AuthMiddleware`        | `@faber-js/auth`    | Validates a Bearer JWT and calls `request.setUser()`                        |
@@ -308,15 +377,21 @@ Global:  LogMiddleware (after)
 Register built-in middleware in your kernel:
 
 ```typescript
+import { HandleCors, MethodSpoofing, ThrottleRequests } from '@faber-js/http';
 import { AuthMiddleware } from '@faber-js/auth';
 import { SignedMiddleware } from '@faber-js/router';
 import { StartSession, PreventRequestForgery } from '@faber-js/session';
-import sessionConfig from '../config/session';
 
-kernel.alias('session', new StartSession(driver, sessionConfig.cookie));
-kernel.alias('csrf', new PreventRequestForgery());
+// Global — runs on every request
+kernel.use(new HandleCors());
+kernel.use(new MethodSpoofing());
+
+// Named aliases — applied per-route
+kernel.alias('throttle', new ThrottleRequests(rateLimiter));
 kernel.alias('auth', new AuthMiddleware());
 kernel.alias('signed', new SignedMiddleware());
+kernel.alias('session', new StartSession(driver, sessionConfig.cookie));
+kernel.alias('csrf', new PreventRequestForgery());
 ```
 
 ::: tip

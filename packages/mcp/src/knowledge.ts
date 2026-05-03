@@ -84,6 +84,18 @@ Entry point: bootstrap/app.ts. The app boots providers, loads routes, then start
       'resource',
       'middleware',
       'prefix',
+      'redirect',
+      'fallback',
+      'domain',
+      'where',
+      'pattern',
+      'singleton',
+      'match',
+      'any',
+      'spoofing',
+      'method spoofing',
+      'route cache',
+      'signed url',
     ],
     content: `
 Import: import { Route } from '@faber-js/router';
@@ -94,9 +106,31 @@ Basic routes:
   Route.put('/path/:id', [Controller, 'method']);
   Route.patch('/path/:id', [Controller, 'method']);
   Route.delete('/path/:id', [Controller, 'method']);
+  Route.options('/path', [Controller, 'method']);
+  Route.match(['GET', 'POST'], '/path', [Controller, 'method']);
+  Route.any('/path', [Controller, 'method']);
 
 Route with inline handler:
   Route.get('/health', () => Promise.resolve(Response.json({ status: 'ok' })));
+
+Route parameters — colon and brace syntax are both valid:
+  Route.get('/users/:id', [UserController, 'show']);
+  Route.get('/users/{id}', [UserController, 'show']);   // same thing
+
+Optional parameter:
+  Route.get('/posts/{slug?}', [PostController, 'index']);
+
+Pattern constraints:
+  Route.get('/users/{id}', [UserController, 'show']).where('id', '[0-9]+');
+  Router.pattern('id', '[0-9]+');  // global pattern for all routes
+
+Redirect routes:
+  Route.redirect('/old', '/new');             // 302
+  Route.permanentRedirect('/old', '/new');    // 301
+  Route.redirect('/old', '/new', 307);        // custom status
+
+Fallback route (catches all unmatched requests):
+  Route.fallback((_req) => Promise.resolve(Response.json({ message: 'Not Found' }, 404)));
 
 Route groups (prefix + middleware):
   Route.group({ prefix: '/api/v1', middleware: ['auth'] }, () => {
@@ -104,17 +138,185 @@ Route groups (prefix + middleware):
     Route.post('/users', [UserController, 'store']);
   });
 
-Resource routes (generates index, store, show, update, destroy):
-  Route.resource('posts', PostController);
-
-Middleware-first chaining:
-  Route.middleware('auth').group(() => {
+Domain routing — domain params are merged into route params:
+  Route.group({ domain: '{account}.example.com' }, () => {
     Route.get('/dashboard', [DashController, 'index']);
   });
 
-Route parameters are accessed in controllers via req.route('paramName').
+Resource routes (generates 7 CRUD routes):
+  Route.resource('posts', PostController);
+  // GET /posts         → index
+  // GET /posts/create  → create
+  // POST /posts        → store
+  // GET /posts/:post   → show
+  // GET /posts/:post/edit → edit
+  // PUT /posts/:post   → update
+  // DELETE /posts/:post → destroy
+
+  Route.resource('photos', PhotoController, { only: ['index', 'show'] });
+  Route.resource('comments', CommentController, { except: ['create', 'edit'] });
+
+Singleton resource (one-per-parent, e.g. profile):
+  Route.singleton('profile', ProfileController);
+  // GET /profile       → show
+  // GET /profile/edit  → edit
+  // PUT /profile       → update
+
+Named routes:
+  Route.get('/users', [UserController, 'index']).name('users.index');
+
+Signed URLs:
+  import { URL } from '@faber-js/router';
+  const link = URL.signedRoute('users.show', { id: 42 });
+  const temp = URL.temporarySignedRoute('invite', 3600, { token: 'abc' });
+
+Route model binding (implicit):
+  Route.get('/users/{user}', [UserController, 'show']);
+  // FaberJS auto-fetches User by primary key — injects null → 404
+
+  Route.get('/posts/{post}', [PostController, 'show'])
+    .missing((_req) => Promise.resolve(Response.json({ error: 'not found' }, 404)));
+
+Explicit binding:
+  Route.model('user', User);            // by primary key
+  Route.model('post', Post, 'slug');    // by column
+  Route.bind('order', async (value) => Order.where('uuid', value).first());
+
+Route parameter are accessed in controllers via req.route('paramName').
 
 Routes are defined in routes/api.ts and loaded in bootstrap/app.ts after app.boot().
+
+Route cache CLI:
+  npx faber route:cache   — serialize routes to bootstrap/cache/routes.json
+  npx faber route:clear   — delete the cache file
+`.trim(),
+  },
+
+  {
+    title: 'Route Model Binding — @faber-js/router + @faber-js/orm',
+    keywords: [
+      'model binding',
+      'route binding',
+      'implicit binding',
+      'explicit binding',
+      'resolveRouteBinding',
+      'Route.model',
+      'Route.bind',
+      'missing handler',
+      '404 model',
+      'inject model',
+    ],
+    content: `
+Route model binding automatically resolves ORM model instances from route parameters.
+
+IMPLICIT BINDING — any ORM Model whose class name (lcFirst) matches a route param is auto-fetched:
+  Route.get('/users/{user}', [UserController, 'show']);
+
+  // UserController.ts — user is auto-injected (404 if not found)
+  async show(_req: Request, user: User): Promise<Response> {
+    return this.json({ data: user });
+  }
+
+Requirements for implicit binding:
+  - Route param name must equal lcFirst(ClassName) — e.g. {user} → User, {blogPost} → BlogPost
+  - The class must have a static resolveRouteBinding(value, field?) method
+  - All @faber-js/orm Models have this by default; custom classes can add it
+
+Custom missing handler (per-route):
+  Route.get('/posts/{post}', [PostController, 'show'])
+    .missing((_req) => Promise.resolve(Response.json({ error: 'not found' }, 404)));
+
+EXPLICIT BINDING — registered globally via Route.model() or Route.bind():
+
+  Route.model('user', User);              // resolves by primary key
+  Route.model('post', Post, 'slug');      // resolves by slug column
+
+  Route.bind('order', async (value, _req) => {
+    return Order.where('uuid', value).first();
+  });
+
+Explicit bindings override implicit ones. Register them in routes/api.ts or a service provider.
+
+IMPORTANT: Implicit binding uses design:paramtypes from reflect-metadata — controllers must be decorated with @Injectable() and TypeScript must have emitDecoratorMetadata enabled.
+`.trim(),
+  },
+
+  {
+    title: 'Built-in HTTP Middleware — @faber-js/http',
+    keywords: [
+      'cors',
+      'handle cors',
+      'cross origin',
+      'method spoofing',
+      'form method',
+      '_method',
+      'throttle',
+      'rate limit',
+      'too many requests',
+      '429',
+      'built-in middleware',
+    ],
+    content: `
+@faber-js/http ships three production-ready middleware classes.
+
+--- HandleCors ---
+Import: import { HandleCors } from '@faber-js/http';
+
+Handles CORS headers and pre-flight OPTIONS requests.
+
+Usage (global — runs before routing):
+  kernel.use(new HandleCors());
+
+With options:
+  kernel.use(new HandleCors({
+    origin: ['https://app.example.com'],  // allow specific origins (omit for wildcard)
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    headers: ['Content-Type', 'Authorization'],
+    credentials: true,
+    maxAge: 86400,
+  }));
+
+For pre-flight requests (OPTIONS), HandleCors returns a 204 No Content immediately.
+For regular requests, it appends CORS headers to the existing response.
+
+--- MethodSpoofing ---
+Import: import { MethodSpoofing } from '@faber-js/http';
+
+Lets HTML forms (POST-only) tunnel PUT, PATCH, DELETE via a _method hidden field.
+
+Usage (global middleware):
+  kernel.use(new MethodSpoofing());
+
+HTML form example:
+  <input type="hidden" name="_method" value="PUT" />
+
+  After middleware runs:
+  request.method()      → 'PUT'   (spoofed)
+  request.realMethod()  → 'POST'  (original)
+
+Supported spoof values: PUT, PATCH, DELETE (other values are ignored).
+
+--- ThrottleRequests ---
+Import: import { ThrottleRequests, TooManyRequestsException } from '@faber-js/http';
+
+Rate-limits requests per IP. Requires a RateLimiterInterface-compatible backend:
+  import { RateLimiter } from '@faber-js/cache';
+  const limiter = new RateLimiter(cacheStore);
+  kernel.alias('throttle', new ThrottleRequests(limiter));
+
+Route usage:
+  .middleware(['throttle'])           // 60 requests / 60 seconds (default)
+  .middleware(['throttle:10,30'])     // 10 requests / 30 seconds
+
+Throws TooManyRequestsException (HTTP 429) with retryAfter property when limit exceeded.
+
+RateLimiterInterface (duck-typed — no cache package dependency):
+  interface RateLimiterInterface {
+    tooManyAttempts(key: string, maxAttempts: number): Promise<boolean>;
+    increment(key: string, decaySeconds?: number): Promise<number>;
+    availableIn(key: string): Promise<number>;
+    clear(key: string): Promise<void>;
+  }
 `.trim(),
   },
 
@@ -808,17 +1010,26 @@ All CLI commands use colon-separated style matching Laravel Artisan.
 
 Code generation:
   npx faber make:controller PostController
+  npx faber make:controller Post --resource        (7 CRUD methods)
+  npx faber make:controller Post --api             (5 API methods, no create/edit)
+  npx faber make:controller Archive --invokable    (single __invoke method)
   npx faber make:model Post -m          (-m creates migration too)
   npx faber make:service PostService
   npx faber make:job NotifyFollowers
   npx faber make:event UserRegistered
-  npx faber make:listener SendWelcomeEmail
+  npx faber make:listener SendWelcomeEmailListener
   npx faber make:middleware RateLimitMiddleware
   npx faber make:migration CreatePostsTable
   npx faber make:provider AppServiceProvider
   npx faber make:command SyncDataCommand
   npx faber make:agent SupportAgent
   npx faber make:validation CreatePostRequest
+  npx faber make:schema Post              (schema-first model — @faber-js/schema)
+  npx faber make:view users/index         (JSX view — @faber-js/view)
+  npx faber make:channel Room             (WebSocket channel — @faber-js/channels)
+  npx faber make:mail WelcomeMail         (Mailable class — @faber-js/mail)
+  npx faber make:policy PostPolicy        (authorization policy — @faber-js/auth)
+  npx faber make:form-request CreatePost  (FormRequest — @faber-js/validation)
 
 Database:
   npx faber db:migrate          — run all pending migrations
@@ -830,6 +1041,14 @@ Development:
   npx faber serve               — start dev server with hot reload
   npx faber tinker              — interactive REPL with app context
   npx faber route:list          — list all registered routes
+  npx faber route:cache         — serialize routes to bootstrap/cache/routes.json
+  npx faber route:clear         — delete the route cache file
+
+Security:
+  npx faber key:generate        — generate APP_KEY for @faber-js/crypt, writes to .env
+
+Frontend Bridge:
+  npx faber bridge:types        — generate BridgePages type map from resources/pages/
 
 Custom commands (app/commands/):
   import { Command } from '@faber-js/console';
@@ -963,6 +1182,1059 @@ CSRF token:
 
 Drivers: 'file' (default, production-safe single server), 'memory' (tests only).
 Custom driver: implement SessionDriver interface (read/write/destroy/gc).
+`.trim(),
+  },
+
+  {
+    title: 'Cache — @faber-js/cache',
+    keywords: [
+      'cache',
+      'caching',
+      'redis',
+      'remember',
+      'rate limiter',
+      'rate limit',
+      'atomic lock',
+      'lock',
+      'cache driver',
+      'cache.get',
+      'cache.put',
+      'cache.remember',
+    ],
+    content: `
+Import: import { Cache, RateLimiter } from '@faber-js/cache';
+
+Register provider (bootstrap/app.ts):
+  import { CacheServiceProvider } from '@faber-js/cache';
+  app.register(new CacheServiceProvider(app, {
+    driver: 'memory',  // 'memory' | 'redis' | 'database'
+    redis: { host: '127.0.0.1', port: 6379 },
+    prefix: 'faberjs_cache',
+  }));
+
+Basic operations:
+  await Cache.get('key');               // returns value or null
+  await Cache.get('key', []);           // returns default when missing
+  await Cache.put('key', value, 60);    // store for 60 seconds
+  await Cache.forever('key', value);    // store indefinitely
+  await Cache.has('key');               // true if exists
+  await Cache.missing('key');           // true if absent
+  await Cache.forget('key');            // remove one key
+  await Cache.flush();                  // clear all
+  await Cache.pull('key');              // read and remove
+
+Remember (most common pattern):
+  const users = await Cache.remember('users:all', 300, async () => User.all());
+  const settings = await Cache.rememberForever('app:settings', async () => Setting.all());
+
+Atomic counters:
+  await Cache.increment('page_views');     // +1
+  await Cache.increment('downloads', 5);  // +5
+  await Cache.decrement('seats');         // -1
+
+Atomic locks (prevent race conditions):
+  const lock = Cache.lock('process-invoices', 30);  // 30s TTL
+  if (await lock.get()) {
+    try { await processInvoices(); } finally { await lock.release(); }
+  }
+  // run-and-release shorthand:
+  await Cache.lock('send-report', 30).get(async () => { await sendWeeklyReport(); });
+
+Rate limiter:
+  const key = \`login:\${req.ip()}\`;
+  if (await RateLimiter.tooManyAttempts(key, 5)) {
+    const retryAfter = await RateLimiter.availableIn(key);
+    return this.json({ message: \`Retry in \${retryAfter}s.\` }, 429);
+  }
+  await RateLimiter.hit(key, 60);
+  // shorthand:
+  const executed = await RateLimiter.attempt(key, 5, async () => login(req), 60);
+
+Testing:
+  Cache.fake();                          // in-memory stub, no real driver
+  // write to it normally, then assert Cache.has() / Cache.get()
+
+.env:
+  CACHE_DRIVER=memory    # memory | redis | database
+  REDIS_HOST=127.0.0.1
+`.trim(),
+  },
+
+  {
+    title: 'Encryption & Hashing — @faber-js/crypt',
+    keywords: [
+      'hash',
+      'bcrypt',
+      'password',
+      'encrypt',
+      'decrypt',
+      'aes',
+      'crypt',
+      'signed url',
+      'temporary url',
+      'app key',
+      'key generate',
+      'DecryptException',
+    ],
+    content: `
+Import: import { Hash, Crypt, URL } from '@faber-js/crypt';
+
+Register provider (bootstrap/app.ts):
+  import { CryptServiceProvider } from '@faber-js/crypt';
+  app.register(new CryptServiceProvider(app, {
+    key: process.env.APP_KEY ?? '',   // 256-bit base64 key
+    bcrypt: { rounds: 12 },
+  }));
+
+Generate APP_KEY:
+  npx faber key:generate             // writes to .env
+
+--- Hashing (one-way — passwords) ---
+  const hashed = await Hash.make('secret');        // bcrypt hash
+  const ok     = await Hash.check('secret', hashed); // verify
+  const stale  = await Hash.needsRehash(hashed);   // true if made with fewer rounds
+
+Full login example:
+  const user = await User.where('email', email).first();
+  if (!user || !await Hash.check(password, user.getAttribute('password'))) {
+    throw new UnauthorizedException();
+  }
+
+--- Encryption (two-way — store-and-retrieve) ---
+  const enc = await Crypt.encryptString('my-token');   // AES-256-GCM
+  const dec = await Crypt.decryptString(enc);           // original value
+  // throws DecryptException on tamper / wrong key
+
+  import { DecryptException } from '@faber-js/crypt';
+  try { await Crypt.decryptString(stored); }
+  catch (e) { if (e instanceof DecryptException) { ... } }
+
+Testing:
+  Crypt.fake();  // replace with identity codec (base64), no real APP_KEY needed
+
+--- Signed URLs ---
+  import { URL, SignedMiddleware } from '@faber-js/crypt';
+
+  // Permanent signed URL
+  const link = URL.signedRoute('email.verify', { id: user.id });
+
+  // Expires in 1 hour
+  const reset = URL.temporarySignedRoute('password.reset', 3600, { email });
+
+  // Validate without middleware
+  URL.hasValidSignature(url);  // boolean
+
+  // Protect routes:
+  kernel.register('signed', new SignedMiddleware());
+  Route.get('/email/verify', [Controller, 'verify']).middleware(['signed']);
+  // Returns 403 automatically when signature invalid or expired
+`.trim(),
+  },
+
+  {
+    title: 'HTTP Client — @faber-js/http-client',
+    keywords: [
+      'http client',
+      'outbound',
+      'fetch',
+      'Http.get',
+      'Http.post',
+      'withToken',
+      'retry',
+      'timeout',
+      'Http.fake',
+      'HttpResponse',
+      'external api',
+    ],
+    content: `
+Import: import { Http } from '@faber-js/http-client';
+No service provider needed — available immediately after import.
+
+Basic requests:
+  const res = await Http.get('https://api.example.com/users');
+  const res = await Http.post('https://api.example.com/users', { name: 'Alice' });
+  await Http.put('/users/1', { name: 'Alice Smith' });
+  await Http.patch('/users/1', { active: true });
+  await Http.delete('/users/1');
+
+  // GET with query params
+  await Http.get('/users', { page: 1, per_page: 25 });
+
+Builder methods (chain before sending):
+  Http.withToken(token)                         // Authorization: Bearer
+  Http.withBasicAuth('user', 'pass')
+  Http.withHeaders({ 'X-Request-ID': uuid() })
+  Http.baseUrl('https://api.example.com/v1')    // prepend to every path
+  Http.timeout(5000)                            // ms — throws RequestTimeoutException
+  Http.retry(3, 500)                            // 3 attempts, 500ms initial delay (exponential backoff)
+  Http.asForm()                                 // form-urlencoded instead of JSON
+  Http.withBody('<xml/>', 'application/xml')    // raw body
+
+Reusable client:
+  const client = Http.baseUrl('https://api.github.com').withToken(token);
+  const user = await client.get('/users/octocat').then(r => r.json());
+
+HttpResponse API:
+  res.status()        // number (200, 404, etc.)
+  res.ok()            // true for 2xx
+  res.failed()        // true for 4xx / 5xx
+  res.clientError()   // 4xx
+  res.serverError()   // 5xx
+  await res.json()    // parsed JSON
+  await res.body()    // raw string
+  res.header('Content-Type')
+  res.throw()         // throws HttpRequestException if failed()
+  res.throwIf(cond)   // conditional throw
+
+Testing (no network):
+  Http.fake({
+    'https://api.example.com/users': Http.response([{ id: 1 }], 200),
+    'https://payments.example.com/*': Http.response({ error: 'Declined' }, 422),
+  });
+  // After test:
+  Http.assertSent((req) => req.url() === '...' && req.method() === 'POST');
+  Http.assertNothingSent();
+  Http.assertSentCount(2);
+  Http.clearFakes();  // call in afterEach
+`.trim(),
+  },
+
+  {
+    title: 'Mail — @faber-js/mail',
+    keywords: [
+      'mail',
+      'email',
+      'mailable',
+      'smtp',
+      'send mail',
+      'Mail.to',
+      'Mail.fake',
+      'nodemailer',
+      'welcome email',
+      'queue mail',
+    ],
+    content: `
+Import: import { Mail, Mailable } from '@faber-js/mail';
+
+Register provider (bootstrap/app.ts):
+  import { MailServiceProvider } from '@faber-js/mail';
+  app.register(new MailServiceProvider(app, {
+    driver: 'smtp',  // 'smtp' | 'log'
+    smtp: { host: 'smtp.mailtrap.io', port: 587, encryption: 'tls', auth: { user: '', pass: '' } },
+    from: { address: 'hello@example.com', name: 'My App' },
+  }));
+
+Generate a mailable:
+  npx faber make:mail WelcomeMail
+  // creates app/mail/WelcomeMail.ts
+
+Mailable class:
+  import { Mailable } from '@faber-js/mail';
+
+  export class WelcomeMail extends Mailable {
+    constructor(private readonly user: User) { super(); }
+
+    build(): unknown {
+      const name = this.user.getAttribute('name') as string;
+      return this.to(name).subject(\`Welcome, \${name}!\`).html(\`<h1>Welcome!</h1>\`);
+    }
+  }
+
+Mailable fluent API:
+  .to(address, name?)    .cc(address)    .bcc(address)
+  .from(address, name?)  .replyTo(address)
+  .subject(text)         .html(html)     .text(plainText)
+  .attach(path, options?)
+  .priority('high' | 'normal' | 'low')
+
+Sending:
+  await Mail.send(new WelcomeMail(user));
+  await Mail.to(user.email).send(new WelcomeMail(user));
+  await Mail.to(email).cc(manager).bcc(audit).send(new InvoiceMail(invoice));
+
+  // Queue to avoid blocking HTTP response (requires @faber-js/queue):
+  await Mail.to(email).queue(new WelcomeMail(user));
+  await Mail.to(email).onQueue('emails').queue(new WelcomeMail(user));
+
+Testing:
+  Mail.fake();                               // no real sends, records in memory
+  Mail.assertSent(WelcomeMail);
+  Mail.assertSent(WelcomeMail, (mail) => mail.hasTo('alice@example.com'));
+  Mail.assertNotSent(InvoiceMail);
+  Mail.assertNothingSent();
+  Mail.assertSentCount(WelcomeMail, 1);
+  Mail.assertQueued(WelcomeMail);
+
+.env:
+  MAIL_DRIVER=smtp
+  MAIL_HOST=smtp.mailtrap.io
+  MAIL_PORT=587
+  MAIL_ENCRYPTION=tls
+  MAIL_USERNAME=...
+  MAIL_PASSWORD=...
+  MAIL_FROM_ADDRESS=hello@example.com
+  MAIL_FROM_NAME="My App"
+`.trim(),
+  },
+
+  {
+    title: 'Schema-first Models — @faber-js/schema',
+    keywords: [
+      'schema',
+      'schema-first',
+      'factory',
+      'openapi',
+      't.string',
+      't.email',
+      't.id',
+      'InferSchemaType',
+      'test factory',
+      'schema factory',
+    ],
+    content: `
+Import: import { schema, t } from '@faber-js/schema';
+No service provider needed.
+
+Define a schema (declares table, types, validation, OpenAPI, factory):
+  export const User = schema('users', {
+    id:        t.id(),
+    name:      t.string().min(2).max(100),
+    email:     t.email().unique(),
+    password:  t.string().hidden(),
+    role:      t.enum(['admin', 'editor', 'viewer'] as const).default('viewer'),
+    bio:       t.text().nullable(),
+    createdAt: t.timestamp().auto(),
+    updatedAt: t.timestamp().auto(),
+  });
+
+Infer TypeScript type:
+  import type { InferSchemaType } from '@faber-js/schema';
+  type UserRow = InferSchemaType<typeof User>;
+
+Field types:
+  t.id()                 — number, auto-increment PK
+  t.string(length?)      — string (VARCHAR)
+  t.text()               — string (TEXT)
+  t.email()              — string + email validation
+  t.integer()            — number
+  t.boolean()            — boolean
+  t.timestamp()          — Date
+  t.uuid()               — string
+  t.enum(values as const) — union type
+  t.foreignId()          — number (foreign key)
+  t.json()               — unknown
+
+Modifiers (chainable):
+  .nullable()   .default(val)   .unique()   .index()
+  .hidden()     .auto()          .min(n)     .max(n)
+  .unsigned()
+
+ORM — schema class extends Model, all standard methods work:
+  await User.find(1);
+  await User.all();
+  await User.create({ name: 'Ada', email: 'ada@example.com' });
+  await User.where('role', 'admin').get();
+
+Validation rules (auto-generated):
+  User.rules()  // compatible with FormRequest.rules() and Validator.validate()
+
+OpenAPI spec:
+  User.openapi()  // returns OpenAPI 3.1 schema object
+
+Test factory:
+  const user  = await User.factory().createOne();         // persist
+  const users = await User.factory().times(10).create();  // persist many
+  const admin = await User.factory().state({ role: 'admin' }).createOne();
+  const stub  = User.factory().makeOne();                  // no DB
+
+CLI:
+  npx faber make:schema Post
+  // creates app/schema/Post.ts with id + timestamps stub
+`.trim(),
+  },
+
+  {
+    title: 'Testing — @faber-js/testing',
+    keywords: [
+      'testing',
+      'test',
+      'testclient',
+      'test response',
+      'assertok',
+      'assertcreated',
+      'assertjsonpath',
+      'refreshdatabase',
+      'assertdatabasehas',
+      'actingas',
+    ],
+    content: `
+Import: import { createTestApp, TestClient } from '@faber-js/testing';
+Install as dev dependency: pnpm add -D @faber-js/testing
+
+TestClient — makes real HTTP requests against your running app:
+  let client: TestClient;
+
+  beforeEach(async () => {
+    client = await createTestApp(await buildKernel());
+  });
+
+  afterEach(async () => {
+    await client.close();
+  });
+
+Making requests:
+  const res = await client.get('/api/users');
+  const res = await client.post('/api/users', { name: 'Alice', email: 'alice@example.com' });
+  await client.put('/api/users/1', { name: 'Alice Smith' });
+  await client.patch('/api/users/1', { active: true });
+  await client.delete('/api/users/1');
+  // with extra headers:
+  await client.get('/admin/stats', { 'x-internal-key': 'secret' });
+
+Authenticated requests:
+  const authed = client.actingAs('my-bearer-token');  // returns new client
+  await authed.get('/api/profile');
+
+  // or with custom headers:
+  await client.withHeaders({ 'x-tenant-id': '42' }).get('/api/users');
+
+TestResponse assertions (all chainable):
+  res.assertOk()           // 200
+  res.assertCreated()      // 201
+  res.assertNoContent()    // 204
+  res.assertNotFound()     // 404
+  res.assertUnauthorized() // 401
+  res.assertForbidden()    // 403
+  res.assertUnprocessable() // 422
+  res.assertStatus(302)
+  res.assertJson({ message: 'Created' })
+  res.assertJsonPath('data.email', 'alice@example.com')
+
+  // read response:
+  res.status()             // number
+  res.json()               // parsed body
+  res.header('content-type')
+
+Database assertions (standalone):
+  import { assertDatabaseHas, assertDatabaseMissing, assertDatabaseCount } from '@faber-js/testing';
+
+  await assertDatabaseHas('users', { email: 'alice@example.com' });
+  await assertDatabaseMissing('users', { id: 1 });
+  await assertDatabaseCount('users', 3);
+
+TestCase base class (full lifecycle wiring):
+  class PostsTest extends TestCase {
+    protected createKernel(): Promise<HttpKernel> { return buildKernel(); }
+    protected async setup() { await this.refreshDatabase(); }
+  }
+  // provides: t.getJson, t.postJson, t.putJson, t.patchJson, t.deleteJson
+  // t.actingAs('token'), t.assertDatabaseHas(table, record)
+`.trim(),
+  },
+
+  {
+    title: 'Server-side Views — @faber-js/view',
+    keywords: [
+      'view',
+      'views',
+      'jsx',
+      'server-side rendering',
+      'ssr',
+      'view controller',
+      'this.view',
+      'layout',
+      'template',
+      'raw html',
+      'Unsafe',
+    ],
+    content: `
+Import: import { ViewServiceProvider, ViewController } from '@faber-js/view';
+
+Register provider (bootstrap/app.ts):
+  app.register(new ViewServiceProvider(app));
+
+View files live in resources/views/ and have .view.tsx extension.
+Each file must include the JSX import source pragma:
+  /** @jsxImportSource @faber-js/view */
+
+Example view (resources/views/users/index.view.tsx):
+  /** @jsxImportSource @faber-js/view */
+
+  interface Props { users: Array<{ id: number; name: string }> }
+
+  export default function UsersIndex({ users }: Props) {
+    return (
+      <html lang="en"><body>
+        <ul>{users.map((u) => <li key={u.id}>{u.name}</li>)}</ul>
+      </body></html>
+    );
+  }
+
+Rendering from a controller (extend ViewController, not Controller):
+  import { ViewController } from '@faber-js/view';
+
+  @Injectable()
+  export class UserController extends ViewController {
+    async index(_req: Request): Promise<Response> {
+      return this.view('users/index', { users: await User.all() });
+    }
+  }
+
+this.view(name, props):
+  - resolves resources/views/{name}.view.tsx
+  - calls default export with props
+  - returns Response with content-type: text/html
+  - prepends <!DOCTYPE html> when root element is <html>
+
+Layout composition — import and call like any component:
+  import { AppLayout } from '../layouts/app.view';
+  export default function Page({ users }: Props) {
+    return <AppLayout title="Users"><ul>...</ul></AppLayout>;
+  }
+  // AppLayout receives children as RawHtml (already-rendered, not escaped)
+
+Auto-escaping: all interpolated values are HTML-escaped (XSS-safe).
+  {userInput}    // "&lt;script&gt;" — always safe
+
+Raw HTML (trusted content only):
+  import { Unsafe, raw } from '@faber-js/view';
+  <Unsafe html={article.renderedMarkdown} />
+  <p>{raw('<strong>bold</strong>')}</p>
+
+Boolean attributes:
+  <input checked={true} disabled={false} />  // → <input checked>
+
+Fragment:
+  import { Fragment } from '@faber-js/view';
+  <><td>{name}</td><td>{email}</td></>
+
+ViewRenderer API (advanced):
+  import { ViewRenderer } from '@faber-js/view';
+  const html = await renderer.render('users/index', { users });
+  const html = renderer.renderComponent(UsersIndex, { users });
+  // throws ViewNotFoundException when file not found
+
+CLI:
+  npx faber make:view users/index   // creates resources/views/users/Index.view.tsx
+`.trim(),
+  },
+
+  {
+    title: 'Collections & Support Utilities — @faber-js/support',
+    keywords: [
+      'collection',
+      'collect',
+      'str',
+      'string helpers',
+      'arr',
+      'array helpers',
+      'pipeline',
+      'slug',
+      'camel',
+      'snake',
+      'groupby',
+      'pluck',
+      'chunk',
+    ],
+    content: `
+Import: import { collect, Collection, Str, Arr, Pipeline } from '@faber-js/support';
+No service provider needed.
+
+--- Collections ---
+  const users = collect([{ id: 1, name: 'Alice', score: 95 }, ...]);
+  // or: Collection.make([...])  or  collect(await User.all())
+
+Chain methods:
+  users.map((u) => u.name)          // transform
+  users.filter((u) => u.score > 80) // keep matching
+  users.pluck('name')               // extract field → Collection
+  users.pluck('id').all()           // → plain array
+  users.first()                     // first item
+  users.first((u) => u.role === 'admin')
+  users.groupBy('role')             // → Map<string, ...>
+  users.sortBy('name')              // ascending
+  users.sortByDesc('score')         // descending
+  users.chunk(10)                   // paginate
+  users.skip(10).take(10)           // offset+limit
+  users.unique('email')             // deduplicate by field
+  users.partition((u) => u.admin)   // → [Collection, Collection]
+  users.sum('score')   users.avg('score')   users.min()   users.max()
+  users.count()        users.isEmpty()       users.isNotEmpty()
+  users.all()          users.toJson()
+  users.reduce((carry, u) => carry + u.score, 0)
+  users.each((u) => console.log(u.name))
+  users.flatMap((u) => u.tags)
+
+--- Str (string helpers) ---
+  Str.camel('hello_world')      // 'helloWorld'
+  Str.snake('HelloWorld')       // 'hello_world'
+  Str.kebab('HelloWorld')       // 'hello-world'
+  Str.studly('hello_world')     // 'HelloWorld'
+  Str.slug('Hello World!')      // 'hello-world'
+  Str.title('hello world')      // 'Hello World'
+  Str.limit('long text', 10)    // 'long text...'
+  Str.uuid()                    // UUID v4
+  Str.random(16)                // random alphanumeric
+  Str.plural('user')            // 'users'
+  Str.singular('users')         // 'user'
+
+  // Fluent API:
+  Str.of('  Hello World!  ').trim().lower().slug().value()  // 'hello-world'
+
+--- Arr (array helpers) ---
+  Arr.wrap('hello')              // ['hello']
+  Arr.wrap(null)                 // []
+  Arr.chunk([1,2,3,4,5], 2)     // [[1,2],[3,4],[5]]
+  Arr.flatten([1,[2,[3]]])       // [1,2,3]
+  Arr.unique([1,1,2,3])         // [1,2,3]
+  Arr.pluck(users, 'id')        // [1,2,3]
+  Arr.groupBy(users, 'role')    // { admin:[...], editor:[...] }
+  Arr.shuffle([1,2,3,4])        // random order
+  Arr.zip([1,2], ['a','b'])     // [[1,'a'],[2,'b']]
+  Arr.first(arr)   Arr.last(arr)
+
+--- Pipeline ---
+  const result = await Pipeline.make()
+    .send({ name: '  Alice  ', email: 'ALICE@EXAMPLE.COM' })
+    .through(
+      (p, next) => next({ ...p, name: p.name.trim() }),
+      (p, next) => next({ ...p, email: p.email.toLowerCase() }),
+    )
+    .thenReturn();
+
+  // Custom terminal step:
+  const user = await Pipeline.make()
+    .send(rawInput)
+    .through(trimStrings, normalizeEmail, hashPassword)
+    .then(async (data) => User.create(data));
+`.trim(),
+  },
+
+  {
+    title: 'Frontend Bridge — @faber-js/bridge',
+    keywords: [
+      'bridge',
+      'frontend',
+      'spa',
+      'inertia',
+      'bridge controller',
+      'this.render',
+      'shared data',
+      'BridgeController',
+      'BridgeServiceProvider',
+      'bridge types',
+      'full-stack',
+      'vite',
+    ],
+    content: `
+Import (server): import { BridgeController, BridgeServiceProvider, SharedData } from '@faber-js/bridge';
+
+Register provider (bootstrap/app.ts — after HTTP kernel):
+  app.register(new BridgeServiceProvider(app));
+  // BridgeMiddleware is auto-registered as global middleware
+
+BridgeController — extends Controller, adds this.render():
+  @Injectable()
+  export class UserController extends BridgeController {
+    async index(_req: Request): Promise<Response> {
+      return this.render('Users/Index', { users: await this.users.all() });
+    }
+
+    async show(req: Request): Promise<Response> {
+      const user = await this.users.find(Number(req.route('id')));
+      return this.render('Users/Show', { user });
+    }
+  }
+
+this.render(componentName, props):
+  - componentName is a path relative to resources/pages/ (e.g. 'Users/Index')
+  - On first visit: returns full HTML page with JSON embedded in <div id="app" data-page="...">
+  - On XHR navigation (X-Faber-Bridge: true header): returns JSON only
+
+HTML shell (resources/views/app.html):
+  <div id="app" data-page="__BRIDGE_PAGE__"></div>
+  <script type="module" src="/resources/js/app.tsx"></script>
+
+Shared data (available on every page):
+  const shared = app.make<SharedData>('bridge.shared');
+  shared.share('appName', 'My App');
+  shared.share((req) => ({ auth: { user: req.user ? { id: req.user.id } : null } }));
+  shared.share(async (req) => ({ unread: await Notification.count() }));
+  // per-render props override shared data on key collision
+
+Asset versioning:
+  // 409 Conflict triggers hard reload when client version != server version
+  // @faber-js/bridge/vite plugin computes version from entry file hash
+
+Vite config:
+  import { faberBridge } from '@faber-js/bridge/vite';
+  plugins: [react(), faberBridge({ framework: 'react' })]
+  // or: [vue(), faberBridge({ framework: 'vue' })]
+
+Generate types (run after adding page components):
+  npx faber bridge:types
+  // creates resources/types/bridge.generated.ts with BridgePages type map
+`.trim(),
+  },
+
+  {
+    title: 'React Adapter — @faber-js/bridge-react',
+    keywords: [
+      'bridge react',
+      'createBridgeApp',
+      'usePage',
+      'useForm',
+      'Link',
+      'Head',
+      'react bridge',
+      'bridge react hooks',
+      'form submission',
+    ],
+    content: `
+Import: import { createBridgeApp, usePage, useForm, Link, Head } from '@faber-js/bridge-react';
+
+Bootstrap (resources/js/app.tsx):
+  import { createBridgeApp } from '@faber-js/bridge-react';
+  createBridgeApp({ resolve: (name) => import(\`../pages/\${name}\`) });
+
+Page components (resources/pages/Users/Index.tsx):
+  export default function UsersIndex() {
+    const { props } = usePage<{ users: User[] }>();
+    return <ul>{props.users.map(u => <li key={u.id}>{u.name}</li>)}</ul>;
+  }
+
+usePage<T>() — returns current bridge page:
+  const { props, url, component } = usePage<{ users: User[]; auth: { user: User | null } }>();
+  // With generated types:
+  import type { BridgePages } from '../../types/bridge.generated';
+  const { props } = usePage<BridgePages['Users/Index']>();
+
+<Link> — bridge XHR navigation (no full page reload):
+  <Link href="/users">All users</Link>
+  <Link href="/posts/1" method="delete" preserveScroll>Delete</Link>
+
+useForm<T>(initialValues) — manages form state + server validation errors:
+  const form = useForm({ name: '', email: '' });
+
+  form.data.name                  // field value
+  form.errors.email               // server validation error
+  form.processing                 // true while request in-flight
+  form.hasErrors                  // any errors?
+  form.setData('name', value)     // update field
+  form.reset()                    // reset to initial values
+  form.post('/users')             // POST with form data as JSON
+  form.put('/users/1')
+  form.patch('/users/1')
+  form.delete('/users/1')
+  form.post('/users', {
+    onSuccess: (page) => ...,
+    onError: (errors) => ...,
+    onFinish: () => ...,
+  });
+
+  // Handles 422 automatically — populates form.errors from response body
+
+<Head> — sets document.title:
+  <Head title="Users — My App" />
+
+Real-time hooks (requires setChannelsClient setup):
+  import { useChannel, usePresence } from '@faber-js/bridge-react';
+  useChannel('room.general', { 'message': (data) => setMessages(m => [...m, data]) });
+  const { members } = usePresence('room.general');
+`.trim(),
+  },
+
+  {
+    title: 'Vue Adapter — @faber-js/bridge-vue',
+    keywords: [
+      'bridge vue',
+      'vue bridge',
+      'BridgeLink',
+      'BridgeHead',
+      'useForm vue',
+      'usePage vue',
+      'v-model form',
+      'vue bridge hooks',
+    ],
+    content: `
+Import: import { createBridgeApp, usePage, useForm, BridgeLink, BridgeHead } from '@faber-js/bridge-vue';
+
+Bootstrap (resources/js/app.ts):
+  import { createBridgeApp } from '@faber-js/bridge-vue';
+  createBridgeApp({ resolve: (name) => import(\`../pages/\${name}.vue\`) });
+
+Page components (resources/pages/Users/Index.vue):
+  <script setup lang="ts">
+  import { usePage } from '@faber-js/bridge-vue';
+  const page = usePage<{ users: User[] }>();
+  </script>
+  <template>
+    <li v-for="user in page.props.users" :key="user.id">{{ user.name }}</li>
+  </template>
+
+usePage<T>() — returns ComputedRef<BridgePage>:
+  const page = usePage<{ user: User }>();
+  page.value.props.user    // User
+  page.value.url           // current URL
+  page.value.component     // component name
+  const user = computed(() => page.value.props.user);
+
+<BridgeLink> — bridge XHR navigation:
+  <BridgeLink href="/users">All users</BridgeLink>
+  <BridgeLink href="/users" method="post" :preserve-scroll="true">Submit</BridgeLink>
+
+useForm<T>(initialValues) — reactive form:
+  const form = useForm({ name: '', email: '' });
+
+  // v-model works directly (form.data is reactive)
+  <input v-model="form.data.name" />
+  <span v-if="form.errors.name">{{ form.errors.name }}</span>
+  <button :disabled="form.processing">Submit</button>
+
+  form.post('/users')      form.put('/users/1')
+  form.patch('/users/1')   form.delete('/users/1')
+  form.reset()             form.clearErrors()
+  form.post('/users', { onSuccess: (page) => ..., onError: (errs) => ... });
+
+<BridgeHead> — sets document.title:
+  <BridgeHead title="Users — My App" />
+
+React vs Vue differences:
+  usePage()    → React returns BridgePage, Vue returns ComputedRef<BridgePage>
+  Navigation   → React uses <Link>,          Vue uses <BridgeLink>
+  Head         → React uses <Head>,          Vue uses <BridgeHead>
+  Form v-model → N/A in React (use setData), works directly in Vue
+
+Real-time hooks:
+  import { useChannel, usePresence } from '@faber-js/bridge-vue';
+  const { on } = useChannel('room.general');
+  on('message', (data) => messages.value.push(data));
+  const { members } = usePresence('room.general');  // Ref<MemberData[]>
+`.trim(),
+  },
+
+  {
+    title: 'Real-Time Channels — @faber-js/channels',
+    keywords: [
+      'channels',
+      'websocket',
+      'realtime',
+      'broadcast',
+      'Channel.public',
+      'Channel.private',
+      'Channel.presence',
+      'socket',
+      'FaberChannels',
+      'presence channel',
+      'useChannel',
+      'usePresence',
+    ],
+    content: `
+Import: import { Channel, broadcast } from '@faber-js/channels';
+
+Register provider (bootstrap/app.ts):
+  import { ChannelsServiceProvider } from '@faber-js/channels';
+  app.register(new ChannelsServiceProvider(app));
+
+Register channels (routes/channels.ts):
+  import { Channel } from '@faber-js/channels';
+  Channel.public('notifications', [NotificationChannel, 'subscribe']);
+  Channel.private('user.{id}', [AuthMiddleware], [UserChannel, 'presence']);
+  Channel.presence('room.{slug}', [AuthMiddleware], [RoomChannel, 'join']);
+
+Generate: npx faber make:channel Room
+  // creates app/channels/RoomChannel.ts
+
+Channel handler (app/channels/RoomChannel.ts):
+  @Injectable()
+  export class RoomChannel extends Channel {
+    async join(socket: Socket, slug: string): Promise<void> {
+      const user = socket.user<User>();
+      socket.joinPresence(\`room.\${slug}\`, { id: user.id, name: user.name });
+
+      socket.on('message', async (content) => {
+        socket.to(\`room.\${slug}\`).emit('message', { user, content });
+      });
+
+      socket.on('disconnect', () => { /* cleanup */ });
+    }
+  }
+
+Socket API:
+  socket.join(channel)               // subscribe to channel
+  socket.joinPresence(channel, data) // subscribe with member tracking
+  socket.leave(channel)              // unsubscribe
+  socket.emit(event, data)           // emit to all my channels
+  socket.to(channel).emit(...)       // emit to everyone on channel
+  socket.broadcast(event, data)      // everyone except this socket
+  socket.on(event, handler)          // handle client events
+  socket.user<T>()                   // authenticated user
+  socket.disconnect()                // force disconnect
+
+Presence events (auto-emitted):
+  'presence.init'    → { members: [] }    (on connect)
+  'presence.joined'  → { member }         (when someone connects)
+  'presence.left'    → { member }         (when someone disconnects)
+
+broadcast() from anywhere (services, jobs, controllers):
+  import { broadcast } from '@faber-js/channels';
+  await broadcast('user.' + userId, 'order.shipped', { orderId, trackingNumber });
+  await broadcast('notifications', 'new-post', { postId });
+
+Browser client:
+  import { FaberChannels } from '@faber-js/channels/client';
+  const ch = new FaberChannels({ url: 'ws://localhost:3000/_faber/ws', token });
+  const room = ch.presence('room.general');
+  room.here((members) => console.log(members));
+  room.joining((m) => console.log('joined:', m.name));
+  room.leaving((m) => console.log('left:', m.name));
+  ch.disconnect();
+
+Multi-process (Redis adapter):
+  // config/channels.ts: { driver: 'redis', redis: { host, port, channel: 'faberjs_channels' } }
+  // CHANNELS_DRIVER=redis in .env
+  // pnpm add ioredis
+`.trim(),
+  },
+
+  {
+    title: 'Runtime Adapters — @faber-js/adapters',
+    keywords: [
+      'adapters',
+      'runtime',
+      'bun',
+      'lambda',
+      'cloudflare',
+      'workers',
+      'serverless',
+      'edge',
+      'BunAdapter',
+      'FastifyAdapter',
+      'createLambdaHandler',
+      'createWorkerHandler',
+      'detectRuntime',
+    ],
+    content: `
+Import: import { FastifyAdapter, BunAdapter, createLambdaHandler, createWorkerHandler, detectRuntime, createAdapter } from '@faber-js/adapters';
+
+Detect runtime:
+  const runtime = detectRuntime();  // 'node' | 'bun' | 'lambda' | 'cloudflare'
+  const adapter = createAdapter();  // auto-picks the right adapter
+
+FastifyAdapter (default — Node.js):
+  // Already used internally by HttpKernel. Only needed for manual use.
+  const adapter = new FastifyAdapter();
+  await adapter.start(handler, { port: 3000, host: '0.0.0.0' });
+  await adapter.stop();
+
+BunAdapter (requires Bun runtime):
+  import { BunAdapter } from '@faber-js/adapters/bun';
+  const adapter = new BunAdapter();
+  await adapter.start(handler, { port: 3000 });
+  // Run: bun run bootstrap/app.ts (~4× faster cold start)
+  // Throws if used outside Bun
+
+Lambda adapter (AWS Lambda):
+  // lambda.ts
+  import { createLambdaHandler } from '@faber-js/adapters/lambda';
+  import app from './bootstrap/app';
+  export const handler = createLambdaHandler(app);
+  // Signature: (event: APIGatewayProxyEvent) => Promise<APIGatewayProxyResult>
+  // app.boot() is called once on cold start; warm invocations skip it
+
+  // Manual bridge functions:
+  import { fromLambdaEvent, toLambdaResponse } from '@faber-js/adapters/lambda';
+
+Cloudflare Workers adapter:
+  // worker.ts
+  import { createWorkerHandler } from '@faber-js/adapters/cloudflare';
+  export default createWorkerHandler(async (req) => Response.json({ edge: true }));
+  // Returns { fetch } compatible with Cloudflare ExportedHandler
+
+  // Manual bridge:
+  import { fromWorkerRequest, toWorkerResponse } from '@faber-js/adapters/cloudflare';
+
+HttpAdapter interface (implement custom adapters):
+  interface HttpAdapter {
+    start(handler: RequestHandler, options?: AdapterOptions): Promise<void>;
+    stop(): Promise<void>;
+  }
+
+  type RequestHandler = (request: Request) => Promise<Response>;
+
+HttpKernel.handleRequest (used internally by adapters):
+  const kernel = app.make<HttpKernel>('http.kernel');
+  const response = await kernel.handleRequest(req);  // no TCP server
+
+Feature support by runtime:
+  Routing/Validation/Auth: all runtimes
+  ORM (Knex): Node, Bun, Lambda
+  ORM: NOT available on Cloudflare Workers (use D1 or external API)
+`.trim(),
+  },
+
+  {
+    title: 'DevTools Dashboard — @faber-js/devtools',
+    keywords: [
+      'devtools',
+      'dashboard',
+      'traces',
+      'observability',
+      '_faber',
+      'TraceStore',
+      'DevToolsServiceProvider',
+      'slow query',
+      'request trace',
+      'sql trace',
+    ],
+    content: `
+Import: import { DevToolsServiceProvider, TraceStore } from '@faber-js/devtools';
+
+Registration (bootstrap/app.ts — after ORM and Events providers):
+  app.register(new DevToolsServiceProvider(app, {
+    db:         getConnection(),     // optional — enables SQL tracing tab
+    dispatcher: app.make('events'), // optional — enables Events tracing tab
+  }));
+
+Dashboard: http://localhost:3000/_faber (automatically disabled when APP_ENV=production)
+
+Three tabs:
+  Requests — HTTP method, path, status, duration, SQL query count, heap delta
+  Queries  — SQL statement, duration, correlated request ID (if triggered by a request)
+  Events   — Event type, duration, timestamp
+
+Slow highlighting: queries >100ms amber, >200ms red; requests >500ms amber, >1s red.
+
+Configuration options:
+  {
+    enabled:            true,        // default: APP_ENV !== 'production'
+    path:               '/_faber',
+    slowQueryThreshold: 100,         // ms
+    maxRequests:        200,         // ring buffer sizes
+    maxQueries:         500,
+    maxEvents:          500,
+    maxAgentTraces:     100,
+  }
+
+How it works:
+  DevHttpTracer  — global middleware; uses AsyncLocalStorage to correlate SQL ↔ request
+  DevOrmTracer   — hooks into Knex query events
+  DevEventTracer — calls dispatcher.listenWildcard()
+
+API endpoints (polled every 3s by dashboard):
+  GET /_faber/api/requests   — RequestTrace[]
+  GET /_faber/api/queries    — SqlTrace[]
+  GET /_faber/api/events     — EventTrace[]
+  GET /_faber/api/agents     — AgentTrace[]
+  DELETE /_faber/api/clear   — clears all buffers
+
+Using TraceStore in tests:
+  const store = Application.getInstance().make(TraceStore);
+  const requests = store.getRequests();
+  expect(requests[0].queryCount).toBe(1);
+  expect(requests[0].status).toBe(200);
+
+Ring buffer: fixed-size in-memory, oldest entries dropped when full. Nothing persists to disk.
 `.trim(),
   },
 

@@ -10,17 +10,17 @@ If you scaffolded with `npm create faberjs@latest` and selected the Claude integ
 
 The MCP server exposes nine tools to the connected agent:
 
-| Tool               | What it does                                                                                                                                         |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `faber_make`       | Generate a controller, model, service, job, event, listener, middleware, migration, provider, command, agent, schema, view, channel, mail, or policy |
-| `faber_migrate`    | Run all pending database migrations (`db:migrate`)                                                                                                   |
-| `faber_rollback`   | Roll back the last migration batch (`db:rollback`)                                                                                                   |
-| `faber_db_status`  | Show migration status — what has run, what is pending                                                                                                |
-| `faber_db_seed`    | Run all database seeders                                                                                                                             |
-| `faber_db_fresh`   | Drop every table and re-run all migrations from scratch — destructive                                                                                |
-| `faber_db_refresh` | Roll back every migration, then re-run them — preserves the database, resets data                                                                    |
-| `faber_route_list` | List every registered route — method, path, controller, middleware                                                                                   |
-| `faber_docs`       | Search the bundled framework knowledge base for API references and patterns                                                                          |
+| Tool               | What it does                                                                                                                                                       |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `faber_make`       | Generate a controller, model, service, job, event, listener, middleware, migration, provider, command, agent, schema, view, channel, mail, policy, or form-request |
+| `faber_migrate`    | Run all pending database migrations (`db:migrate`)                                                                                                                 |
+| `faber_rollback`   | Roll back the last migration batch (`db:rollback`)                                                                                                                 |
+| `faber_db_status`  | Show migration status — what has run, what is pending                                                                                                              |
+| `faber_db_seed`    | Run all database seeders                                                                                                                                           |
+| `faber_db_fresh`   | Drop every table and re-run all migrations from scratch — destructive                                                                                              |
+| `faber_db_refresh` | Roll back every migration, then re-run them — preserves the database, resets data                                                                                  |
+| `faber_route_list` | List every registered route — method, path, controller, middleware                                                                                                 |
+| `faber_docs`       | Search the bundled framework knowledge base for API references and patterns                                                                                        |
 
 Every tool is a thin wrapper over the equivalent `npx faber` command, run in your project's working directory. No hidden behaviour — what you'd type in the terminal is what the agent runs.
 
@@ -90,29 +90,44 @@ Cursor reads MCP config from its global settings or from a project `.mcp.json`. 
 
 ### `faber_make`
 
-Generates a single file using the `faber` CLI.
+Generates a single file (or multiple files when `withRequests` is set) using the `faber` CLI.
 
-| Parameter       | Type               | Description                                                                                                                                                                    |
-| --------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `type`          | string (enum)      | One of: `controller`, `model`, `service`, `job`, `event`, `listener`, `middleware`, `migration`, `provider`, `command`, `agent`, `schema`, `view`, `channel`, `mail`, `policy` |
-| `name`          | string             | PascalCase for class generators, snake_case for migrations. Examples: `"PostController"`, `"create_posts_table"`                                                               |
-| `withMigration` | boolean (optional) | Only valid for `type: "model"` — passes the `-m` flag so a migration is generated alongside the model                                                                          |
+| Parameter       | Type               | Description                                                                                                                                                                                    |
+| --------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`          | string (enum)      | One of: `controller`, `model`, `service`, `job`, `event`, `listener`, `middleware`, `migration`, `provider`, `command`, `agent`, `schema`, `view`, `channel`, `mail`, `policy`, `form-request` |
+| `name`          | string             | PascalCase for class generators, snake_case for migrations. Examples: `"PostController"`, `"create_posts_table"`                                                                               |
+| `withMigration` | boolean (optional) | Only valid for `type: "model"` — passes `-m` so a migration is generated alongside the model                                                                                                   |
+| `invokable`     | boolean (optional) | Only valid for `type: "controller"` — generates a single-action controller with `__invoke()`                                                                                                   |
+| `resource`      | boolean (optional) | Only valid for `type: "controller"` — generates a full resource controller (all 7 CRUD methods)                                                                                                |
+| `api`           | boolean (optional) | Only valid for `type: "controller"` — generates an API resource controller (5 methods, no create/edit)                                                                                         |
+| `model`         | string (optional)  | Only valid for `type: "controller"` — model name used for route param names in the stub (e.g. `"Post"`)                                                                                        |
+| `withRequests`  | boolean (optional) | Only valid for `type: "controller"` with `resource` or `api` — also generates `Store{Model}Request` and `Update{Model}Request` in `app/requests/`                                              |
 
-Example invocation the agent might make:
+Example invocations:
 
 ```json
-{
-  "type": "model",
-  "name": "Post",
-  "withMigration": true
-}
+{ "type": "model", "name": "Post", "withMigration": true }
 ```
 
-Equivalent to running:
+Equivalent to: `npx faber make:model Post -m`
 
-```bash
-npx faber make:model Post -m
+```json
+{ "type": "controller", "name": "Post", "resource": true, "model": "Post" }
 ```
+
+Equivalent to: `npx faber make:controller Post --resource --model=Post`
+
+```json
+{ "type": "controller", "name": "Archive", "invokable": true }
+```
+
+Equivalent to: `npx faber make:controller Archive --invokable`
+
+```json
+{ "type": "controller", "name": "Post", "api": true, "model": "Post", "withRequests": true }
+```
+
+Equivalent to: `npx faber make:controller Post --api --model=Post --requests`
 
 ### `faber_migrate` / `faber_rollback` / `faber_db_status` / `faber_db_seed`
 

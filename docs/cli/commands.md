@@ -111,12 +111,37 @@ All generators follow the same pattern: they create a new file in the appropriat
 
 ### `npx faber make:controller <Name>`
 
-Creates `app/controllers/<Name>Controller.ts` with all five resource methods (`index`, `show`, `store`, `update`, `destroy`).
+Creates a controller in `app/controllers/`. Without flags, generates a plain controller. Use flags to tailor the output:
 
 ```bash
 npx faber make:controller User
 # CREATED app/controllers/UserController.ts
+
+# Full resource (7 methods: index, create, store, show, edit, update, destroy)
+npx faber make:controller Post --resource
+
+# API resource (5 methods: no create/edit)
+npx faber make:controller Post --api
+
+# Single-action invokable controller (__invoke method)
+npx faber make:controller Archive --invokable
+
+# With model name for route param stubs
+npx faber make:controller Post --resource --model=Post
+
+# Also generate StorePostRequest and UpdatePostRequest
+npx faber make:controller Post --resource --model=Post --requests
 ```
+
+**Options:**
+
+| Flag                  | Description                                                          |
+| --------------------- | -------------------------------------------------------------------- |
+| `-i, --invokable`     | Generate a single-action controller with `__invoke()`                |
+| `-r, --resource`      | Generate a full resource controller (all 7 CRUD methods)             |
+| `-a, --api`           | Generate an API resource controller (5 methods, no create/edit)      |
+| `-m, --model <Model>` | Set the model name used for route param names in the stub            |
+| `-R, --requests`      | Also generate `Store{Model}Request` and `Update{Model}Request` files |
 
 ### `npx faber make:model <Name>`
 
@@ -277,6 +302,122 @@ npx faber make:view users/index
 # CREATED resources/views/users/Index.view.tsx
 ```
 
+### `npx faber make:schema <Name>`
+
+Creates a schema-first model declaration in `schema/<Name>.ts` using `@faber-js/schema`. Schemas describe your model's fields and types in one place; the ORM, validation, and migration layers can all derive from them.
+
+```bash
+npx faber make:schema Post
+# CREATED schema/Post.ts
+```
+
+The generated stub:
+
+```typescript
+import { schema, t } from '@faber-js/schema';
+
+export const Post = schema('posts', {
+  id: t.id(),
+  // Add your fields here:
+  // name:   t.string().min(2).max(255),
+  // email:  t.email().unique(),
+  // bio:    t.text().nullable(),
+  // role:   t.enum(['admin', 'editor', 'viewer'] as const).default('viewer'),
+  createdAt: t.timestamp().auto(),
+  updatedAt: t.timestamp().auto(),
+});
+```
+
+See [Schema-First Models](/digging-deeper/schema) for full usage.
+
+### `npx faber make:mail <Name>`
+
+Creates `app/mail/<Name>Mail.ts` extending `Mailable`. Fill in the `build()` method to set recipients, subject, and body.
+
+```bash
+npx faber make:mail WelcomeEmail
+# CREATED app/mail/WelcomeEmailMail.ts
+```
+
+The generated stub:
+
+```typescript
+import { Mailable } from '@faber-js/mail';
+
+export class WelcomeEmailMail extends Mailable {
+  constructor(private readonly recipient: string) {
+    super();
+  }
+
+  build(): void {
+    this.to(this.recipient).subject('WelcomeEmail').html('<p>Hello from FaberJS!</p>');
+  }
+}
+```
+
+See [Mail](/digging-deeper/mail) for full usage.
+
+### `npx faber make:policy <Name>`
+
+Creates `app/policies/<Name>Policy.ts` with `view`, `create`, `update`, and `delete` authorization methods.
+
+```bash
+npx faber make:policy Post
+# CREATED app/policies/PostPolicy.ts
+```
+
+The generated stub:
+
+```typescript
+import type { AuthUser } from '@faber-js/http';
+import { Policy } from '@faber-js/auth';
+
+export class PostPolicy extends Policy {
+  async view(_user: AuthUser, _model: unknown): Promise<boolean> {
+    return true;
+  }
+
+  async create(_user: AuthUser): Promise<boolean> {
+    return true;
+  }
+
+  async update(_user: AuthUser, _model: unknown): Promise<boolean> {
+    return true;
+  }
+
+  async delete(_user: AuthUser, _model: unknown): Promise<boolean> {
+    return true;
+  }
+}
+```
+
+See [Authentication & Authorization](/digging-deeper/auth) for full usage.
+
+---
+
+## Key generation
+
+### `npx faber key:generate`
+
+Generate a cryptographically secure `APP_KEY` and write it to your `.env` file. Run this once after creating a new project.
+
+```bash
+npx faber key:generate
+# Application key set: base64:xQ3r...
+```
+
+**Options:**
+
+| Flag     | Description                                    |
+| -------- | ---------------------------------------------- |
+| `--show` | Print the key to stdout without writing `.env` |
+
+```bash
+# Print without writing
+npx faber key:generate --show
+# base64:xQ3rL8mNpT...
+```
+
 ---
 
 ## Frontend Bridge
@@ -300,10 +441,10 @@ The generated file maps each component name (relative to `resources/pages/`) to 
 
 **Options:**
 
-| Flag              | Default                              | Description                           |
-| ----------------- | ------------------------------------ | ------------------------------------- |
-| `--pages <dir>`   | `resources/pages`                    | Directory to scan for page components |
-| `--out <file>`    | `resources/types/bridge.generated.ts`| Output file path                      |
+| Flag            | Default                               | Description                           |
+| --------------- | ------------------------------------- | ------------------------------------- |
+| `--pages <dir>` | `resources/pages`                     | Directory to scan for page components |
+| `--out <file>`  | `resources/types/bridge.generated.ts` | Output file path                      |
 
 ```bash
 # Custom paths
@@ -335,6 +476,24 @@ GET      /admin/posts                  PostController        index
 POST     /admin/posts                  PostController        store
 ```
 
+### `npx faber route:cache`
+
+Serialize all registered routes to `bootstrap/cache/routes.json`. In production, FaberJS reads this file instead of re-evaluating your route definitions on every cold start.
+
+```bash
+npx faber route:cache
+# CREATED bootstrap/cache/routes.json
+```
+
+### `npx faber route:clear`
+
+Remove the cached routes file so FaberJS falls back to evaluating your route files at runtime.
+
+```bash
+npx faber route:clear
+# REMOVED bootstrap/cache/routes.json
+```
+
 ---
 
 ## Interactive REPL
@@ -358,27 +517,33 @@ FaberJS Tinker — application ready
 
 ## Command quick reference
 
-| Command                            | Description                                   |
-| ---------------------------------- | --------------------------------------------- |
-| `npx faber serve`                  | Start the dev server (hot reload)             |
-| `npx faber db:migrate`             | Run pending migrations                        |
-| `npx faber db:rollback`            | Roll back the last migration batch            |
-| `npx faber db:fresh`               | Drop all tables and re-run all migrations     |
-| `npx faber db:refresh`             | Rollback all + re-run all migrations          |
-| `npx faber db:status`              | Show migration status                         |
-| `npx faber db:seed`                | Run database seeders                          |
-| `npx faber make:controller <Name>` | Generate a controller                         |
-| `npx faber make:model <Name> [-m]` | Generate a model (and optionally a migration) |
-| `npx faber make:service <Name>`    | Generate a service                            |
-| `npx faber make:migration <Name>`  | Generate a migration                          |
-| `npx faber make:job <Name>`        | Generate a job                                |
-| `npx faber make:event <Name>`      | Generate an event interface                   |
-| `npx faber make:listener <Name>`   | Generate a listener                           |
-| `npx faber make:middleware <Name>` | Generate middleware                           |
-| `npx faber make:provider <Name>`   | Generate a service provider                   |
-| `npx faber make:command <Name>`    | Generate a custom CLI command                 |
-| `npx faber make:agent <Name>`      | Generate an AI agent                          |
-| `npx faber make:view <Name>`       | Generate a JSX server-side view               |
-| `npx faber bridge:types`           | Generate BridgePages type map from pages dir  |
-| `npx faber route:list`             | List all registered routes                    |
-| `npx faber tinker`                 | Start an interactive REPL                     |
+| Command                                                         | Description                                   |
+| --------------------------------------------------------------- | --------------------------------------------- |
+| `npx faber serve`                                               | Start the dev server (hot reload)             |
+| `npx faber db:migrate`                                          | Run pending migrations                        |
+| `npx faber db:rollback`                                         | Roll back the last migration batch            |
+| `npx faber db:fresh`                                            | Drop all tables and re-run all migrations     |
+| `npx faber db:refresh`                                          | Rollback all + re-run all migrations          |
+| `npx faber db:status`                                           | Show migration status                         |
+| `npx faber db:seed`                                             | Run database seeders                          |
+| `npx faber make:controller <Name> [-i\|-r\|-a] [-m Model] [-R]` | Generate a controller                         |
+| `npx faber make:model <Name> [-m]`                              | Generate a model (and optionally a migration) |
+| `npx faber make:service <Name>`                                 | Generate a service                            |
+| `npx faber make:migration <Name>`                               | Generate a migration                          |
+| `npx faber make:job <Name>`                                     | Generate a job                                |
+| `npx faber make:event <Name>`                                   | Generate an event interface                   |
+| `npx faber make:listener <Name>`                                | Generate a listener                           |
+| `npx faber make:middleware <Name>`                              | Generate middleware                           |
+| `npx faber make:provider <Name>`                                | Generate a service provider                   |
+| `npx faber make:command <Name>`                                 | Generate a custom CLI command                 |
+| `npx faber make:agent <Name>`                                   | Generate an AI agent                          |
+| `npx faber make:view <Name>`                                    | Generate a JSX server-side view               |
+| `npx faber make:schema <Name>`                                  | Generate a schema-first model declaration     |
+| `npx faber make:mail <Name>`                                    | Generate a Mailable class                     |
+| `npx faber make:policy <Name>`                                  | Generate an authorization policy              |
+| `npx faber key:generate [--show]`                               | Generate and write APP_KEY to .env            |
+| `npx faber bridge:types`                                        | Generate BridgePages type map from pages dir  |
+| `npx faber route:list`                                          | List all registered routes                    |
+| `npx faber route:cache`                                         | Cache routes to bootstrap/cache/routes.json   |
+| `npx faber route:clear`                                         | Remove the cached routes file                 |
+| `npx faber tinker`                                              | Start an interactive REPL                     |

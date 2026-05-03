@@ -287,27 +287,35 @@ await RateLimiter.clear(`login:${req.ip}`);
 ```typescript
 // app/middleware/ThrottleMiddleware.ts
 import { RateLimiter } from '@faber-js/cache';
-import type { Request, Response, NextFunction } from '@faber-js/http';
+import type { Middleware, NextFunction } from '@faber-js/http';
+import type { Request } from '@faber-js/http';
+import { Response } from '@faber-js/http';
 
-export class ThrottleMiddleware {
-  async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const key = `throttle:${req.ip}`;
+export class ThrottleMiddleware implements Middleware {
+  async handle(
+    request: Request,
+    next: NextFunction,
+    maxAttempts = '60',
+    decaySeconds = '60',
+  ): Promise<Response> {
+    const key = `throttle:${request.ip()}`;
+    const max = Number(maxAttempts);
+    const decay = Number(decaySeconds);
 
-    if (await RateLimiter.tooManyAttempts(key, 60)) {
+    if (await RateLimiter.tooManyAttempts(key, max)) {
       const retryAfter = await RateLimiter.availableIn(key);
-      res.header('Retry-After', String(retryAfter));
-      res.header('X-RateLimit-Limit', '60');
-      res.header('X-RateLimit-Remaining', '0');
-      res.status(429).send({ message: 'Too Many Requests.' });
-      return;
+      return Response.json({ message: 'Too Many Requests.' }, 429)
+        .withHeader('Retry-After', String(retryAfter))
+        .withHeader('X-RateLimit-Limit', String(max))
+        .withHeader('X-RateLimit-Remaining', '0');
     }
 
-    await RateLimiter.hit(key, 60);
-    const remaining = await RateLimiter.remaining(key, 60);
-    res.header('X-RateLimit-Limit', '60');
-    res.header('X-RateLimit-Remaining', String(remaining));
-
-    await next();
+    await RateLimiter.hit(key, decay);
+    const remaining = await RateLimiter.remaining(key, max);
+    const response = await next(request);
+    return response
+      .withHeader('X-RateLimit-Limit', String(max))
+      .withHeader('X-RateLimit-Remaining', String(remaining));
   }
 }
 ```
