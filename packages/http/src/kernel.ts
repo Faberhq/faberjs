@@ -8,6 +8,8 @@ import { Response } from './response';
 import { Pipeline } from './pipeline';
 import { HttpException } from './exceptions';
 import { runWithRequest } from './request-context';
+import { runWithCookieQueue, Cookie } from './cookie';
+import { UploadedFileImpl } from './uploaded-file';
 import type {
   BindingEntry,
   ControllerAction,
@@ -418,8 +420,10 @@ export class HttpKernel implements HttpKernelContract {
               const pipeline = new Pipeline(allMiddleware, (req) =>
                 this.invokeHandler(handler, req),
               );
-              const res = await runWithRequest(request, () => pipeline.send(request));
-              await this.sendResponse(reply, res);
+              const res = await runWithCookieQueue(() =>
+                runWithRequest(request, () => pipeline.send(request)),
+              );
+              await this.sendResponse(reply, this.applyQueuedCookies(res));
               await this.runTerminate(allMiddleware, request, res);
             } catch (error: unknown) {
               await this.handleError(reply, error);
@@ -438,8 +442,10 @@ export class HttpKernel implements HttpKernelContract {
           const pipeline = new Pipeline([...this.globalMiddleware], (req) =>
             this.invokeHandler(fallback, req),
           );
-          const res = await runWithRequest(request, () => pipeline.send(request));
-          await this.sendResponse(reply, res);
+          const res = await runWithCookieQueue(() =>
+            runWithRequest(request, () => pipeline.send(request)),
+          );
+          await this.sendResponse(reply, this.applyQueuedCookies(res));
         } catch (error: unknown) {
           await this.handleError(reply, error);
         }
@@ -478,16 +484,12 @@ export class HttpKernel implements HttpKernelContract {
     for await (const part of req.parts()) {
       if (part.type === 'file') {
         const buffer = await part.toBuffer();
-        const filename = part.filename ?? '';
-        const ext = filename.includes('.') ? (filename.split('.').pop() ?? '').toLowerCase() : '';
-        const uploadedFile: UploadedFile = {
+        const uploadedFile: UploadedFile = new UploadedFileImpl({
           fieldname: part.fieldname,
-          filename,
+          filename: part.filename ?? '',
           mimetype: part.mimetype ?? 'application/octet-stream',
-          size: buffer.length,
-          toBuffer: async () => buffer,
-          extension: () => ext,
-        };
+          buffer,
+        });
         const existing = files[part.fieldname];
         if (existing !== undefined) {
           files[part.fieldname] = [
@@ -523,6 +525,7 @@ export class HttpKernel implements HttpKernelContract {
       method: rawReq.method,
       path: rawReq.url.split('?')[0],
       url: rawReq.url,
+      scheme: rawReq.protocol,
       headers: rawReq.headers as Record<string, string | string[] | undefined>,
       body: body ?? rawReq.body,
       query,
@@ -733,6 +736,11 @@ export class HttpKernel implements HttpKernelContract {
     return typeof implicitResolver === 'function'
       ? implicitResolver.call(ModelClass, routeValue)
       : null;
+  }
+
+  private applyQueuedCookies(res: Response): Response {
+    const queued = Cookie.getQueued();
+    return queued.reduce((r, serialized) => r.withCookie(serialized), res);
   }
 
   private async sendResponse(reply: FastifyReply, res: Response): Promise<void> {

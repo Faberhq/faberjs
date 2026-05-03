@@ -233,7 +233,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
     'bootstrap/app.ts': [
       `import 'reflect-metadata';`,
       `import { Application } from '@faber-js/core';`,
-      `import { HttpServiceProvider, HttpKernel } from '@faber-js/http';`,
+      `import { HttpServiceProvider, HttpKernel, TrimStrings, ConvertEmptyStringsToNull } from '@faber-js/http';`,
       `import { RouterServiceProvider } from '@faber-js/router';`,
       `import { OrmServiceProvider } from '@faber-js/orm';`,
       `import { CryptServiceProvider } from '@faber-js/crypt';`,
@@ -263,6 +263,8 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
       ...(loadWebRoutes ? [loadWebRoutes] : []),
       ``,
       `  const kernel = app.make<HttpKernel>('http.kernel');`,
+      `  kernel.use(new TrimStrings());`,
+      `  kernel.use(new ConvertEmptyStringsToNull());`,
       `  const port = Number(process.env['APP_PORT'] ?? 3000);`,
       `  await kernel.listen(port);`,
       ``,

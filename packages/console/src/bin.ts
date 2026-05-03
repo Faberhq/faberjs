@@ -362,6 +362,24 @@ program
     clearRouteCache(cwd);
   });
 
+// ── view:cache / view:clear ────────────────────────────────────────
+
+program
+  .command('view:cache')
+  .description('Precompile all view files to storage/framework/views/')
+  .action(async () => {
+    const { cacheViews } = await import('./commands/view-cache');
+    await cacheViews(cwd);
+  });
+
+program
+  .command('view:clear')
+  .description('Remove the precompiled view cache')
+  .action(async () => {
+    const { clearViewCache } = await import('./commands/view-cache');
+    clearViewCache(cwd);
+  });
+
 // ── tinker ─────────────────────────────────────────────────────────
 
 program

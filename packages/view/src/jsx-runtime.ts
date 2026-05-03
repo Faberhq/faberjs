@@ -43,7 +43,7 @@ const BOOLEAN_ATTRS = new Set([
   'typemustmatch',
 ]);
 
-function renderChildren(children: unknown): string {
+export function renderChildren(children: unknown): string {
   if (children === null || children === undefined || children === false) return '';
   if (children instanceof RawHtml) return children.html;
   if (Array.isArray(children)) return (children as unknown[]).map(renderChildren).join('');

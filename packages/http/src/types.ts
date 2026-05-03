@@ -28,6 +28,23 @@ export interface UploadedFile {
   readonly size: number;
   toBuffer(): Promise<Buffer>;
   extension(): string;
+  /** Returns true when the upload completed without error and has content. */
+  isValid(): boolean;
+  /**
+   * Returns the absolute path of a temporary file containing the upload contents.
+   * The file is written to os.tmpdir() on first call and the path is cached.
+   */
+  path(): Promise<string>;
+  /**
+   * Store the file in a managed disk under the given directory.
+   * Requires @faber-js/storage (v2.1).
+   */
+  store(directory: string, disk?: string): Promise<string>;
+  /**
+   * Store the file with an explicit filename.
+   * Requires @faber-js/storage (v2.1).
+   */
+  storeAs(directory: string, name: string, disk?: string): Promise<string>;
 }
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
@@ -62,6 +79,15 @@ export interface RouteDefinition {
   resourceName?: string;
   withTrashed?: boolean;
   scoped?: Record<string, string>;
+}
+
+/**
+ * Minimal session contract used by Request for flash/old input.
+ * The actual Session class from @faber-js/session satisfies this interface.
+ */
+export interface SessionLike {
+  flash(key: string, value: unknown): unknown;
+  get<T = unknown>(key: string, defaultValue?: T): T | undefined;
 }
 
 export interface RateLimiterInterface {
