@@ -353,6 +353,7 @@ export class ViewRenderer {
   }
 
   #resolveViewPath(name: string): string {
+    this.#validateViewName(name);
     const defaultExt = this.driver === 'ejs' ? '.view.ejs' : '.view.tsx';
     const ext = this.#config.extension ?? defaultExt;
     const normalized = name.replace(/\./g, '/');
@@ -366,9 +367,34 @@ export class ViewRenderer {
     throw new ViewNotFoundException(name, candidates[0]);
   }
 
+  // Dots are reserved as directory separators (Laravel parity), so a name
+  // like `admin..profile`, `.profile`, or `profile.` produces an empty path
+  // segment after splitting. The same check rejects `..` traversal attempts
+  // (e.g. `users/../etc`) since they always contain consecutive dots.
+  #validateViewName(name: string): void {
+    if (typeof name !== 'string' || name.length === 0) {
+      throw new Error('View name must be a non-empty string.');
+    }
+    const segments = name.split('.');
+    for (const segment of segments) {
+      if (segment.length === 0) {
+        throw new Error(
+          `Invalid view name "${name}": dots are reserved as directory separators, so leading, trailing, or consecutive dots are not allowed. View directory names must not contain "."`,
+        );
+      }
+    }
+  }
+
+  // Glob-style match: `*` matches any sequence of characters (including dots),
+  // matching Laravel's `Str::is()` semantics. Other regex metacharacters are
+  // escaped, so patterns like `admin.*` and `*.profile` work as expected.
   #matchesPattern(pattern: string, viewName: string): boolean {
-    if (pattern === '*') return true;
-    return pattern === viewName;
+    if (pattern === '*' || pattern === viewName) return true;
+    if (!pattern.includes('*')) return false;
+    const regex = new RegExp(
+      '^' + pattern.replace(/[\\^$.()+?|[\]{}]/g, '\\$&').replace(/\*/g, '.*') + '$',
+    );
+    return regex.test(viewName);
   }
 
   #invokeHandler(handler: ComposerHandler, view: IViewResponse): void {

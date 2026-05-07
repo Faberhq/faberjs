@@ -509,6 +509,88 @@ describe('ViewRenderer composers', () => {
       expect(result).toBe('shared-composer');
     }
   });
+
+  it('glob pattern composer (admin.*) fires for matching nested views', async () => {
+    mkdirSync(join(tmpDir, 'admin'), { recursive: true });
+    const template = `export default function V({ tag }) { return { html: tag ?? 'none' }; }\n`;
+    writeFileSync(join(tmpDir, 'admin', 'profile.view.mjs'), template);
+    writeFileSync(join(tmpDir, 'admin', 'dashboard.view.mjs'), template);
+    writeFileSync(join(tmpDir, 'public.view.mjs'), template);
+
+    const renderer = new ViewRenderer({ viewsDir: tmpDir, extension: '.view.mjs' });
+    renderer.addComposer('admin.*', (v) => {
+      v.with('tag', 'admin-zone');
+    });
+
+    expect(await renderer.renderView(new ViewResponse('admin.profile'))).toBe('admin-zone');
+    expect(await renderer.renderView(new ViewResponse('admin.dashboard'))).toBe('admin-zone');
+    expect(await renderer.renderView(new ViewResponse('public'))).toBe('none');
+  });
+
+  it('glob pattern composer (*.profile) matches by suffix segment', async () => {
+    mkdirSync(join(tmpDir, 'admin'), { recursive: true });
+    mkdirSync(join(tmpDir, 'user'), { recursive: true });
+    const template = `export default function V({ tag }) { return { html: tag ?? 'none' }; }\n`;
+    writeFileSync(join(tmpDir, 'admin', 'profile.view.mjs'), template);
+    writeFileSync(join(tmpDir, 'user', 'profile.view.mjs'), template);
+    writeFileSync(join(tmpDir, 'user', 'settings.view.mjs'), template);
+
+    const renderer = new ViewRenderer({ viewsDir: tmpDir, extension: '.view.mjs' });
+    renderer.addComposer('*.profile', (v) => {
+      v.with('tag', 'profile-shared');
+    });
+
+    expect(await renderer.renderView(new ViewResponse('admin.profile'))).toBe('profile-shared');
+    expect(await renderer.renderView(new ViewResponse('user.profile'))).toBe('profile-shared');
+    expect(await renderer.renderView(new ViewResponse('user.settings'))).toBe('none');
+  });
+
+  it('glob * matches across multiple dot segments', async () => {
+    mkdirSync(join(tmpDir, 'admin', 'users'), { recursive: true });
+    const template = `export default function V({ tag }) { return { html: tag ?? 'none' }; }\n`;
+    writeFileSync(join(tmpDir, 'admin', 'users', 'index.view.mjs'), template);
+
+    const renderer = new ViewRenderer({ viewsDir: tmpDir, extension: '.view.mjs' });
+    renderer.addComposer('admin.*', (v) => {
+      v.with('tag', 'deep');
+    });
+
+    expect(await renderer.renderView(new ViewResponse('admin.users.index'))).toBe('deep');
+  });
+});
+
+// ── ViewRenderer — view name validation ────────────────────────────────
+
+describe('ViewRenderer view name validation', () => {
+  const renderer = new ViewRenderer({ viewsDir: '/tmp/never', extension: '.view.mjs' });
+
+  it('exists() returns false for invalid names with empty segments', () => {
+    expect(renderer.exists('.profile')).toBe(false);
+    expect(renderer.exists('profile.')).toBe(false);
+    expect(renderer.exists('admin..profile')).toBe(false);
+    expect(renderer.exists('')).toBe(false);
+  });
+
+  it('rendering an invalid view name throws a clear error', async () => {
+    await expect(renderer.render('admin..profile', {})).rejects.toThrow(
+      /dots are reserved as directory separators/,
+    );
+    await expect(renderer.render('.profile', {})).rejects.toThrow(
+      /dots are reserved as directory separators/,
+    );
+    await expect(renderer.render('profile.', {})).rejects.toThrow(
+      /dots are reserved as directory separators/,
+    );
+  });
+
+  it('rejects path-traversal attempts via consecutive dots', async () => {
+    await expect(renderer.render('users/../etc', {})).rejects.toThrow(
+      /dots are reserved as directory separators/,
+    );
+    await expect(renderer.render('..', {})).rejects.toThrow(
+      /dots are reserved as directory separators/,
+    );
+  });
 });
 
 // ── ViewRenderer — creators ────────────────────────────────────────────
