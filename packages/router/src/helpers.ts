@@ -1,7 +1,6 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Application } from '@faber-js/core';
-import type { RouterContract, Middleware, NextFunction, Request, Response } from '@faber-js/http';
-import { ForbiddenException } from '@faber-js/http';
+import type { RouterContract } from '@faber-js/http';
 
 export class RouteNotFoundException extends Error {
   constructor(name: string) {
@@ -10,98 +9,102 @@ export class RouteNotFoundException extends Error {
   }
 }
 
-export function route(name: string, params: Record<string, string | number> = {}): string {
-  const router = Application.getInstance().make<RouterContract>('router');
+export type RouteParamValue = string | number | boolean | { getRouteKey(): unknown };
+export type RouteParams = Record<string, RouteParamValue | null | undefined>;
+
+const defaultsStorage = new AsyncLocalStorage<Map<string, string>>();
+
+export function getRouter(): RouterContract {
+  return Application.getInstance().make<RouterContract>('router');
+}
+
+function unwrap(value: RouteParamValue): string {
+  if (
+    value !== null &&
+    typeof value === 'object' &&
+    typeof (value as { getRouteKey: () => unknown }).getRouteKey === 'function'
+  ) {
+    return String((value as { getRouteKey: () => unknown }).getRouteKey());
+  }
+  return String(value);
+}
+
+export function getUrlDefaults(): ReadonlyMap<string, string> {
+  return defaultsStorage.getStore() ?? new Map();
+}
+
+export function setUrlDefaults(params: Record<string, RouteParamValue>): void {
+  let store = defaultsStorage.getStore();
+  if (!store) {
+    store = new Map();
+    defaultsStorage.enterWith(store);
+  }
+  for (const [key, value] of Object.entries(params)) {
+    store.set(key, unwrap(value));
+  }
+}
+
+export function clearUrlDefaults(): void {
+  defaultsStorage.getStore()?.clear();
+}
+
+/**
+ * Build a URL by substituting path placeholders in `pattern` and appending any
+ * leftover params as query string. Used by `route()` and `action()`.
+ *
+ * Path placeholders (`:id`, `{id}`, `{id?}`) are substituted with values from
+ * `params`, falling back to URL.defaults() if a value isn't supplied.
+ */
+export function buildUrl(pattern: string, params: RouteParams = {}): string {
+  const defaults = getUrlDefaults();
+  const remaining = new Map<string, string>();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === null || value === undefined) continue;
+    remaining.set(key, unwrap(value));
+  }
+
+  let url = pattern.replace(
+    /\{([a-zA-Z_][a-zA-Z0-9_]*)\??\}|:([a-zA-Z_][a-zA-Z0-9_]*)/g,
+    (match, braceName, colonName) => {
+      const key = (braceName ?? colonName) as string;
+      const supplied = remaining.get(key);
+      if (supplied !== undefined) {
+        remaining.delete(key);
+        return encodeURIComponent(supplied);
+      }
+      const fallback = defaults.get(key);
+      if (fallback !== undefined) {
+        return encodeURIComponent(fallback);
+      }
+      return match;
+    },
+  );
+
+  // Strip unfilled optional segments (e.g. `/{name?}` with no value provided).
+  url = url.replace(/\/\{[a-zA-Z_][a-zA-Z0-9_]*\?\}/g, '');
+
+  if (remaining.size > 0) {
+    const search = new URLSearchParams();
+    for (const [key, value] of remaining) {
+      search.append(key, value);
+    }
+    url = `${url || '/'}${url.includes('?') ? '&' : '?'}${search.toString()}`;
+  }
+
+  return url || '/';
+}
+
+/**
+ * Build a URL for a named route. See `buildUrl` for substitution rules.
+ * Values that look like a Model (have a `getRouteKey()` method) are unwrapped.
+ */
+export function route(name: string, params: RouteParams = {}): string {
+  const router = getRouter();
   const definition = router.findByName(name);
 
   if (!definition) {
     throw new RouteNotFoundException(name);
   }
 
-  let url = definition.path;
-  for (const [key, value] of Object.entries(params)) {
-    url = url.replace(`{${key}?}`, String(value));
-    url = url.replace(`{${key}}`, String(value));
-    url = url.replace(`:${key}`, String(value));
-  }
-  // Strip unfilled optional segments (e.g. /{name?} with no value provided)
-  url = url.replace(/\/\{[^}]+\?\}/g, '');
-  return url || '/';
-}
-
-function appKey(): string {
-  const key = process.env['APP_KEY'] ?? '';
-  if (!key) throw new Error('APP_KEY is not set. Cannot generate signed URLs.');
-  return key;
-}
-
-function signUrl(canonical: string): string {
-  return createHmac('sha256', appKey()).update(canonical).digest('hex');
-}
-
-// Build a canonical signing string: pathname + sorted query params, excluding _signature.
-// Using URLSearchParams normalises encoding and sorting removes ordering ambiguity so that
-// sign and verify always operate on an identical byte sequence regardless of param order or
-// percent-encoding variations in the incoming URL.
-function buildCanonical(urlString: string): string {
-  const wrapped = urlString.startsWith('http') ? urlString : `http://localhost${urlString}`;
-  const urlObj = new globalThis.URL(wrapped);
-  urlObj.searchParams.delete('_signature');
-  urlObj.searchParams.sort();
-  return urlObj.pathname + (urlObj.search || '');
-}
-
-export const URL = {
-  signedRoute(name: string, params: Record<string, string | number> = {}): string {
-    const base = route(name, params);
-    const separator = base.includes('?') ? '&' : '?';
-    const withSigned = `${base}${separator}_signed=1`;
-    const signature = signUrl(buildCanonical(withSigned));
-    return `${withSigned}&_signature=${signature}`;
-  },
-
-  temporarySignedRoute(
-    name: string,
-    ttlSeconds: number,
-    params: Record<string, string | number> = {},
-  ): string {
-    const base = route(name, params);
-    const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
-    const separator = base.includes('?') ? '&' : '?';
-    const withParams = `${base}${separator}_signed=1&_expires=${expiresAt}`;
-    const signature = signUrl(buildCanonical(withParams));
-    return `${withParams}&_signature=${signature}`;
-  },
-
-  hasValidSignature(requestUrl: string): boolean {
-    try {
-      const wrapped = requestUrl.startsWith('http') ? requestUrl : `http://localhost${requestUrl}`;
-      const urlObj = new globalThis.URL(wrapped);
-      const signature = urlObj.searchParams.get('_signature');
-      if (!signature) return false;
-
-      const expires = urlObj.searchParams.get('_expires');
-      if (expires && parseInt(expires, 10) < Math.floor(Date.now() / 1000)) return false;
-
-      const canonical = buildCanonical(requestUrl);
-      const expected = signUrl(canonical);
-
-      const sigBuf = Buffer.from(signature, 'hex');
-      const expBuf = Buffer.from(expected, 'hex');
-      if (sigBuf.length === 0 || sigBuf.length !== expBuf.length) return false;
-      return timingSafeEqual(sigBuf, expBuf);
-    } catch {
-      return false;
-    }
-  },
-};
-
-export class SignedMiddleware implements Middleware {
-  async handle(request: Request, next: NextFunction): Promise<Response> {
-    const full = request.url();
-    if (!URL.hasValidSignature(full)) {
-      throw new ForbiddenException('This link is invalid or has expired.');
-    }
-    return next(request);
-  }
+  return buildUrl(definition.path, params);
 }

@@ -3,6 +3,7 @@ export {
   NotFoundException,
   UnauthorizedException,
   ForbiddenException,
+  InvalidSignatureException,
   ValidationException,
   ModelNotFoundException,
   TooManyRequestsException,

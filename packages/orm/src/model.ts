@@ -49,6 +49,14 @@ export abstract class Model {
     return this;
   }
 
+  getRouteKeyName(): string {
+    return (this.constructor as typeof Model).primaryKey;
+  }
+
+  getRouteKey(): ColumnValue | undefined {
+    return this.#attributes[this.getRouteKeyName()];
+  }
+
   getRelation<T>(key: string): T | undefined {
     return this.#relations[key] as T | undefined;
   }

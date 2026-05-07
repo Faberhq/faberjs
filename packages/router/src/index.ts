@@ -1,5 +1,10 @@
 export { Controller } from './controller';
-export { RouteNotFoundException, route, URL, SignedMiddleware } from './helpers';
+export { RouteNotFoundException, route, buildUrl } from './helpers';
+export type { RouteParams, RouteParamValue } from './helpers';
+export { URL, SignedMiddleware, UrlGenerator, url } from './url';
+export type { SignedRouteOptions, ValidateSignatureOptions, SignedMiddlewareOptions } from './url';
+export { Uri } from './uri';
+export { action, ActionNotFoundException } from './action';
 export { Route } from './route';
 export type { RouteBuilder } from './route-builder';
 export { ResourceBuilder } from './resource-builder';

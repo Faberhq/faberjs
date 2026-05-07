@@ -27,6 +27,12 @@ export class ForbiddenException extends HttpException {
   }
 }
 
+export class InvalidSignatureException extends ForbiddenException {
+  constructor(message = 'This link is invalid or has expired.') {
+    super(message);
+  }
+}
+
 export class ValidationException extends HttpException {
   constructor(
     readonly errors: Record<string, string[]> = {},

@@ -177,4 +177,15 @@ export class Session {
   setPreviousUrl(url: string): this {
     return this.put('_previous_url', url);
   }
+
+  previousRoute(): string | undefined {
+    return this.get<string>('_previous_route');
+  }
+
+  setPreviousRoute(name: string | undefined): this {
+    if (name === undefined) {
+      return this.forget('_previous_route');
+    }
+    return this.put('_previous_route', name);
+  }
 }
